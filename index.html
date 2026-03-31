@@ -3,211 +3,266 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BLUEOS GAMING</title>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>BLUEOS ELITE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --neon: #00f2ff;
-            --bg: #02040a;
-            --card: rgba(0, 242, 255, 0.05);
+            --bg-dark: #010409;
+            --glass: rgba(0, 242, 255, 0.08);
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        /* Reset para evitar que se vea texto basura */
+        * {
+            margin: 0; padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Rajdhani', sans-serif;
+        }
 
         body {
-            margin: 0;
-            background: var(--bg);
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 50% 50%, #0d1b33 0%, #010409 100%),
+                linear-gradient(rgba(0, 242, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 242, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 30px 30px, 30px 30px;
             color: white;
-            font-family: 'Rajdhani', sans-serif;
             height: 100vh;
+            width: 100vw;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-        }
-
-        /* Fondo de malla */
-        .grid-bg {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
-            background-size: 50px 50px;
-            z-index: -1;
+            user-select: none;
         }
 
         header {
-            padding: 20px;
+            padding: 35px 25px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .logo {
+        .logo-text {
             font-size: 1.8rem;
             font-weight: 700;
-            letter-spacing: 4px;
+            letter-spacing: 6px;
             color: var(--neon);
-            text-shadow: 0 0 10px var(--neon);
+            text-shadow: 0 0 15px var(--neon);
         }
 
-        .battery { font-size: 0.9rem; color: #fff; opacity: 0.6; }
+        .battery-info {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.7);
+        }
 
-        /* Widget de Hora Central */
-        .hero {
-            padding: 20px;
+        /* Reloj Gigante */
+        .hero-widget {
             margin: 10px 20px;
-            background: var(--card);
-            border-left: 4px solid var(--neon);
-            border-radius: 4px;
+            padding: 25px;
+            background: var(--glass);
+            border-left: 5px solid var(--neon);
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        .time { font-size: 3rem; font-weight: 700; margin: 0; line-height: 1; }
-        .mode { font-size: 0.8rem; color: var(--neon); letter-spacing: 2px; margin-top: 5px; }
+        #digital-clock {
+            font-size: 3.8rem;
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: -1px;
+        }
 
-        /* Contenedor de Apps */
-        #apps {
+        .os-status {
+            font-size: 0.8rem;
+            color: var(--neon);
+            letter-spacing: 4px;
+            margin-top: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        /* Grid de Apps */
+        #launcher-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 15px;
             padding: 20px;
             overflow-y: auto;
             flex-grow: 1;
+            padding-bottom: 120px;
+            scrollbar-width: none;
         }
+        #launcher-grid::-webkit-scrollbar { display: none; }
 
-        .app {
+        .app-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            animation: popIn 0.3s ease forwards;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: appAppear 0.5s ease-out forwards;
         }
 
-        .app:active { transform: scale(0.9); }
+        .app-item:active { transform: scale(0.8); }
 
-        .app-icon {
-            width: 60px;
-            height: 60px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(0, 242, 255, 0.2);
-            border-radius: 14px;
+        .icon-container {
+            width: 64px;
+            height: 64px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(0, 242, 255, 0.15);
+            border-radius: 18px;
             display: flex;
-            align-items: center;
             justify-content: center;
-            margin-bottom: 6px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            align-items: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+            margin-bottom: 8px;
+            position: relative;
+            overflow: hidden;
         }
 
-        .app-icon img { width: 75%; height: 75%; object-fit: contain; }
+        .icon-container::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 50%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.05), transparent);
+        }
 
-        .app-name {
+        .icon-container img {
+            width: 70%; height: 70%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
+        }
+
+        .app-label {
             font-size: 0.65rem;
             text-transform: uppercase;
             text-align: center;
             width: 100%;
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
-            color: #ccc;
+            color: #d1d1d1;
+            font-weight: 600;
         }
 
-        /* Barra Inferior (Dock) */
-        .dock {
-            padding: 15px;
-            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+        /* Home Button (Pill) */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 80px;
             display: flex;
             justify-content: center;
+            align-items: center;
+            background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
+            pointer-events: none;
         }
 
-        .home-bar {
-            width: 45px;
-            height: 5px;
+        .home-pill {
+            width: 55px;
+            height: 6px;
             background: var(--neon);
-            border-radius: 10px;
-            box-shadow: 0 0 10px var(--neon);
-            opacity: 0.7;
+            border-radius: 20px;
+            box-shadow: 0 0 20px var(--neon);
+            opacity: 0.8;
+            pointer-events: auto;
+            cursor: pointer;
         }
 
-        @keyframes popIn {
-            from { opacity: 0; transform: scale(0.8); }
-            to { opacity: 1; transform: scale(1); }
+        @keyframes appAppear {
+            from { opacity: 0; transform: translateY(20px) scale(0.9); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
-
     </style>
 </head>
 <body>
 
-    <div class="grid-bg"></div>
-
     <header>
-        <div class="logo">BLUEOS</div>
-        <div class="battery" id="bat">--%</div>
+        <div class="logo-text">BLUEOS</div>
+        <div class="battery-info" id="bat-stat">--%</div>
     </header>
 
-    <div class="hero">
-        <h1 class="time" id="clock">00:00</h1>
-        <div class="mode">GAMING CORE ACTIVE</div>
+    <div class="hero-widget">
+        <h1 id="digital-clock">00:00</h1>
+        <div class="os-status">Core Gaming Online</div>
     </div>
 
-    <main id="apps">
-        <!-- Las apps se cargarán aquí desde el sistema -->
-        <div style="grid-column: span 4; text-align: center; opacity: 0.3; margin-top: 50px;">
-            ESPERANDO SISTEMA...
+    <main id="launcher-grid">
+        <!-- Apps inyectadas aquí -->
+        <div style="grid-column: span 4; text-align: center; opacity: 0.2; margin-top: 50px;">
+            Sincronizando con Android...
         </div>
     </main>
 
-    <div class="dock">
-        <div class="home-bar" onclick="location.reload()"></div>
+    <div class="bottom-nav">
+        <div class="home-pill" onclick="location.reload()"></div>
     </div>
 
     <script>
-        // Actualizar Reloj y Batería
-        function sync() {
-            const d = new Date();
-            document.getElementById('clock').innerText = d.getHours() + ":" + String(d.getMinutes()).padStart(2, '0');
-            if(navigator.getBattery) {
+        // Reloj y Batería
+        function updateStats() {
+            const now = new Date();
+            document.getElementById('digital-clock').innerText = 
+                String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
+            
+            if (navigator.getBattery) {
                 navigator.getBattery().then(b => {
-                    document.getElementById('bat').innerText = Math.floor(b.level * 100) + "%";
+                    document.getElementById('bat-stat').innerText = Math.floor(b.level * 100) + "%";
                 });
             }
         }
-        setInterval(sync, 1000);
-        sync();
+        setInterval(updateStats, 1000);
+        updateStats();
 
-        // FUNCIÓN CLAVE: El APK debe llamar a esta función
+        // Inyección de aplicaciones
         window.setApps = function(json) {
-            const apps = JSON.parse(json);
-            const container = document.getElementById('apps');
-            container.innerHTML = '';
+            try {
+                const apps = JSON.parse(json);
+                const grid = document.getElementById('launcher-grid');
+                grid.innerHTML = '';
 
-            apps.forEach(app => {
-                const item = document.createElement('div');
-                item.className = 'app';
-                item.onclick = () => {
-                    if(window.Android) Android.launchApp(app.packageName);
-                    else console.log("Abriendo: " + app.packageName);
-                };
+                apps.forEach((app, i) => {
+                    const item = document.createElement('div');
+                    item.className = 'app-item';
+                    item.style.animationDelay = (i * 0.03) + "s";
+                    
+                    item.onclick = () => {
+                        if(window.Android && Android.launchApp) {
+                            Android.launchApp(app.packageName);
+                        } else {
+                            console.log("Launch: " + app.packageName);
+                        }
+                    };
 
-                item.innerHTML = `
-                    <div class="app-icon">
-                        <img src="${app.icon || 'https://cdn-icons-png.flaticon.com/512/25/25231.png'}">
-                    </div>
-                    <div class="app-name">${app.name}</div>
-                `;
-                container.appendChild(item);
-            });
+                    item.innerHTML = `
+                        <div class="icon-container">
+                            <img src="${app.icon || 'https://cdn-icons-png.flaticon.com/512/25/25231.png'}" alt="app">
+                        </div>
+                        <div class="app-label">${app.name}</div>
+                    `;
+                    grid.appendChild(item);
+                });
+            } catch(e) { console.error("Error cargando apps"); }
         };
 
-        // Simulación para prueba en navegador
-        if(!window.Android) {
+        // Simulación visual en navegador
+        if (!window.Android) {
             setTimeout(() => {
-                setApps(JSON.stringify([
+                const mocks = [
                     {name: "Free Fire", packageName: "com.dts", icon: ""},
                     {name: "WhatsApp", packageName: "com.wa", icon: ""},
+                    {name: "Discord", packageName: "com.ds", icon: ""},
                     {name: "YouTube", packageName: "com.yt", icon: ""},
-                    {name: "Chrome", packageName: "com.ch", icon: ""}
-                ]));
-            }, 1000);
+                    {name: "Settings", packageName: "com.st", icon: ""},
+                    {name: "Chrome", packageName: "com.ch", icon: ""},
+                    {name: "Play Store", packageName: "com.ps", icon: ""},
+                    {name: "Camera", packageName: "com.cm", icon: ""}
+                ];
+                setApps(JSON.stringify(mocks));
+            }, 800);
         }
     </script>
 </body>
 </html>
-
