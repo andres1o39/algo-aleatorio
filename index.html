@@ -1,0 +1,3475 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BLUEOS ELITE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00f2ff;
+            --deep-space: #02040a;
+            --electric-blue: rgba(0, 242, 255, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--deep-space);
+            color: white;
+            font-family: 'Rajdhani', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Fondo de Partículas Estáticas */
+        .bg-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% 50%, #0a162b 0%, #02040a 100%);
+            z-index: -2;
+        }
+
+        .grid-lines {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(rgba(0, 242, 255, 0.03) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(0, 242, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+        }
+
+        /* Top Bar */
+        header {
+            padding: 25px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+        }
+
+        .brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 5px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        .sys-info {
+            font-size: 0.9rem;
+            color: #aaa;
+            display: flex;
+            gap: 15px;
+        }
+
+        /* App Container */
+        #launcher-core {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            padding: 10px 20px 100px 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+            scrollbar-width: none;
+        }
+        #launcher-core::-webkit-scrollbar { display: none; }
+
+        .app-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            border-radius: 16px;
+            background: var(--electric-blue);
+            border: 1px solid rgba(0, 242, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: slideIn 0.4s ease-out forwards;
+        }
+
+        .app-node:active {
+            transform: scale(0.85);
+            background: rgba(0, 242, 255, 0.3);
+            border-color: var(--neon-cyan);
+        }
+
+        .app-node img {
+            width: 52px;
+            height: 52px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
+        }
+
+        .app-node span {
+            margin-top: 8px;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            text-align: center;
+            color: #fff;
+            width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Widgets Flotantes */
+        .stat-card {
+            margin: 10px 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.03);
+            border-left: 3px solid var(--neon-cyan);
+            border-radius: 4px;
+        }
+
+        .time-big {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+            color: #fff;
+        }
+
+        /* Barra de navegación invisible (Dock) */
+        .dock {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 60px;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .home-circle {
+            width: 40px;
+            height: 6px;
+            background: var(--neon-cyan);
+            border-radius: 10px;
+            box-shadow: 0 0 15px var(--neon-cyan);
+            opacity: 0.6;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-overlay"></div>
+    <div class="grid-lines"></div>
+
+    <header>
+        <div class="brand">BLUEOS</div>
+        <div class="sys-info">
+            <span id="bat-val">--%</span>
+            <span>CORE: ONLINE</span>
+        </div>
+    </header>
+
+    <div class="stat-card">
+        <div class="time-big" id="main-clock">00:00</div>
+        <div style="color: var(--neon-cyan); font-size: 0.8rem; letter-spacing: 2px;">GAMING MODE ACTIVE</div>
+    </div>
+
+    <main id="launcher-core">
+        </main>
+
+    <div class="dock">
+        <div class="home-circle"></div>
+    </div>
+
+    <script>
+        // Actualizar Reloj y Batería
+        function updateUI() {
+            const d = new Date();
+            document.getElementById('main-clock').innerText = 
+                String(d.getHours()).padStart(2, '0') + ":" + String(d.getMinutes()).padStart(2, '0');
+            
+            if (navigator.getBattery) {
+                navigator.getBattery().then(b => {
+                    document.getElementById('bat-val').innerText = Math.floor(b.level * 100) + "%";
+                });
+            }
+        }
+        setInterval(updateUI, 1000);
+        updateUI();
+
+        /**
+         * FUNCIÓN DE ENTRADA PARA TU APK
+         * El convertidor de APK debe llamar a esta función pasando un JSON de las apps instaladas.
+         */
+        window.setAppsFromSystem = function(jsonApps) {
+            const apps = JSON.parse(jsonApps);
+            const container = document.getElementById('launcher-core');
+            container.innerHTML = ''; // Limpia el cargador
+
+            apps.forEach((app, index) => {
+                const node = document.createElement('div');
+                node.className = 'app-node';
+                node.style.animationDelay = (index * 0.05) + "s"; // Efecto cascada
+                
+                // Abre la app usando el puente de tu APK
+                node.onclick = () => {
+                    if(window.Android && Android.launchApp) {
+                        Android.launchApp(app.packageName);
+                    } else {
+                        console.log("Abriendo: " + app.packageName);
+                    }
+                };
+
+                node.innerHTML = `
+                    <img src="${app.icon || 'https://cdn-icons-png.flaticon.com/512/25/25231.png'}" alt="icon">
+                    <span>${app.name}</span>
+                `;
+                container.appendChild(node);
+            });
+        };
+
+        // MODO DESARROLLADOR: Prueba visual (Borrar esto si no quieres ver ejemplos)
+        if (!window.Android) {
+            console.log("Simulando carga de apps del sistema...");
+            const mockApps = [
+                {name: "Free Fire", packageName: "com.dts", icon: ""},
+                {name: "WhatsApp", packageName: "com.wa", icon: ""},
+                {name: "Discord", packageName: "com.ds", icon: ""},
+                {name: "YouTube", packageName: "com.yt", icon: ""},
+                {name: "Settings", packageName: "com.st", icon: ""},
+                {name: "Chrome", packageName: "com.ch", icon: ""},
+                {name: "Gallery", packageName: "com.gl", icon: ""},
+                {name: "Camera", packageName: "com.cm", icon: ""}
+            ];
+            setTimeout(() => setAppsFromSystem(JSON.stringify(mockApps)), 1000);
+        }
+    </script>
+</body>
+</html>
+Más pequeño */
+            font-size: 11px; /* Más pequeño */
+            cursor: pointer;
+        }
+        .boton-eliminar-item:hover {
+            background: #c82333; /* Rojo más oscuro al pasar el ratón */
+        }
+
+        /* Estilos para el Toast/Notificación */
+        #toast {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%); /* Centra horizontalmente */
+            bottom: 60px; /* Encima de la barra inferior (ajustado) */
+            background: rgba(0, 0, 0, 0.7); /* Fondo semitransparente oscuro */
+            color: white;
+            padding: 10px 15px; /* Reducido */
+            border-radius: 6px; /* Más pequeño */
+            font-size: 13px; /* Más pequeño */
+            opacity: 0; /* Oculto por defecto */
+            visibility: hidden; /* Oculto por defecto */
+            transition: opacity 0.3s ease, visibility 0.3s ease; /* Transición suave */
+            z-index: 1000; /* Por encima de todo */
+            white-space: nowrap; /* Evita que el texto se rompa */
+        }
+        #toast.mostrar {
+            opacity: 1; /* Muestra */
+            visibility: visible; /* Muestra */
+        }
+
+        /* Estilos para los overlays y diálogos modales */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7); /* Fondo oscuro semitransparente */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 500; /* Por encima de los paneles */
+            display: none; /* Oculto por defecto */
+        }
+
+        .dialogo {
+            background: #282828; /* Fondo del diálogo */
+            color: white;
+            padding: 20px; /* Reducido */
+            border-radius: 8px; /* Más compacto */
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            max-width: 80%; /* Asegura que no sea demasiado ancho en pantallas pequeñas */
+        }
+
+        .dialogo h3 {
+            margin-bottom: 15px; /* Reducido */
+            font-size: 18px; /* Más pequeño */
+            color: #eee;
+        }
+
+        .dialogo p {
+            margin-bottom: 20px;
+            font-size: 15px;
+        }
+
+        .dialogo-botones button {
+            background: #007bff; /* Azul para el botón principal */
+            color: white;
+            border: none;
+            padding: 8px 16px; /* Reducido */
+            border-radius: 6px; /* Más compacto */
+            font-size: 14px; /* Más pequeño */
+            cursor: pointer;
+            margin: 0 8px; /* Reducido */
+            transition: background 0.2s ease;
+        }
+        .dialogo-botones button:hover {
+            background: #0056b3; /* Azul más oscuro al pasar el ratón */
+        }
+        .dialogo-botones button:last-child {
+            background: #6c757d; /* Gris para el botón secundario */
+        }
+        .dialogo-botones button:last-child:hover {
+            background: #5a6268; /* Gris más oscuro al pasar el ratón */
+        }
+
+        /* Estilos para los modos de transformación (Mover, Rotar, Escalar) */
+        .modo-transformacion {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 10px;
+            gap: 6px; /* Espacio reducido entre botones de modo */
+        }
+
+        .modo-transformacion button {
+            flex-grow: 1; /* Ocupa el espacio disponible */
+            padding: 6px 10px; /* Reducido */
+            border-radius: 6px; /* Más compacto */
+            font-size: 12px; /* Más pequeño */
+            background: #444; /* Fondo oscuro */
+        }
+        .modo-transformacion button.activo {
+            background: #007bff; /* Color de botón activo */
+            font-weight: bold;
+        }
+
+        /* Diálogo para Renombrar */
+        #renameDialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%); /* Centra el diálogo */
+            background: rgba(40, 40, 40, 0.95); /* Fondo semitransparente oscuro */
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            z-index: 600; /* Mayor que otros paneles */
+            display: none; /* Oculto por defecto */
+            flex-direction: column; /* Elementos apilados verticalmente */
+            gap: 15px;
+            max-width: 90%; /* Ancho máximo para pantallas pequeñas */
+            width: 300px; /* Ancho fijo para pantallas más grandes */
+        }
+        #renameDialog h3 {
+            margin: 0;
+            font-size: 1.1em;
+        }
+        #renameInput {
+            width: calc(100% - 20px); /* Ajuste para padding interno */
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background: #333;
+            color: white;
+            font-size: 1em;
+        }
+        #renameButtons {
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+        }
+        #renameButtons button {
+            flex-grow: 1; /* Ocupa el espacio disponible */
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.2s ease;
+        }
+        #renameButtons button:first-child {
+            background: #007bff; /* Azul para Aceptar */
+            color: white;
+        }
+        #renameButtons button:first-child:hover {
+            background: #0056b3;
+        }
+        #renameButtons button:last-child {
+            background: #6c757d; /* Gris para Cancelar */
+            color: white;
+        }
+        #renameButtons button:last-child:hover {
+            background: #5a6268;
+        }
+
+        /* Nuevo panel de información del objeto */
+        #objectInfoBox {
+            top: 60px; /* Ajustado para no colisionar con la barra superior */
+            left: 10px; /* Posición a la izquierda */
+            width: 220px; /* Ancho adecuado para la información */
+            padding: 10px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        #objectInfoBox h4 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            color: #eee;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+        #objectInfoBox div {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        #objectInfoBox span.value {
+            font-weight: bold;
+            color: #00e676; /* Verde brillante para los valores */
+        }
+
+        /* Nuevos paneles de herramientas, luces y materiales */
+        #toolsBox, #lightsBox, #materialsBox {
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%; /* Más ancho para contener más botones */
+            max-width: 350px; /* Límite de ancho para escritorio */
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #toolsBox .panel-section, #lightsBox .panel-section, #materialsBox .panel-section {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #444;
+        }
+        #toolsBox .panel-section:last-child, #lightsBox .panel-section:last-child, #materialsBox .panel-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        #toolsBox h4, #lightsBox h4, #materialsBox h4 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #eee;
+        }
+
+        #toolsBox .button-grid, #lightsBox .button-grid, #materialsBox .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* Columnas autoajustables */
+            gap: 8px; /* Espacio entre botones */
+        }
+
+        #toolsBox .button-grid .boton, #lightsBox .button-grid .boton, #materialsBox .button-grid .boton {
+            width: auto; /* Permite que los botones se ajusten al grid */
+            padding: 10px 12px; /* Más padding para mejor toque */
+            font-size: 14px;
+            border-radius: 8px; /* Bordes más cuadrados */
+        }
+        #toolsBox .button-grid .boton.activo, #lightsBox .button-grid .boton.activo {
+            background: #007bff;
+        }
+
+        /* Estilos específicos para inputs dentro de paneles */
+        #materialsBox input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        #materialsBox label {
+            font-size: 14px;
+            margin-bottom: 5px;
+            display: block;
+        }
+        #materialsBox span.value {
+            font-size: 12px;
+            color: #ccc;
+        }
+        #materialsBox select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 5px;
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Barra Superior de Herramientas -->
+    <div id="barra-superior">
+        <button class="boton" onclick="mostrarPanel('configBox')">⚙️ Config</button>
+        <button class="boton" onclick="activarPantallaCompleta()">⛶ Fullscreen</button>
+        <button class="boton" onclick="guardarEscena()">💾 Guardar</button>
+        <button class="boton" onclick="cargarEscena()">📂 Cargar</button>
+        <button class="boton" onclick="reiniciarEscena()">🔄 Nueva</button>
+        <button class="boton" onclick="deshacerAccion()" id="btnDeshacer">↩ Deshacer</button>
+        <button class="boton" onclick="rehacerAccion()" id="btnRehacer">↪ Rehacer</button>
+        <button class="boton" onclick="toggleUI()" id="btnToggleUI">👁️ Ocultar UI</button>
+        <button class="boton" onclick="toggleGrid()" id="btnGrid">⊞ Rejilla</button>
+        <button class="boton" onclick="toggleCameraProjection()" id="btnProjection">📷 Proyección</button>
+        <button class="boton" onclick="setFrontView()">Frontal</button>
+        <button class="boton" onclick="setTopView()">Superior</button>
+        <button class="boton" onclick="setSideView()">Lateral</button>
+        <button class="boton" onclick="mostrarPanel('toolsBox')">🛠️ Herramientas</button> <!-- Nuevo botón -->
+    </div>
+
+    <!-- Barra Inferior de Herramientas -->
+    <div id="barra-inferior">
+        <button class="boton" onclick="agregarFigura('cubo')">+ Cubo</button>
+        <button class="boton" onclick="agregarFigura('esfera')">+ Esfera</button>
+        <button class="boton" onclick="agregarFigura('cono')">+ Cono</button>
+        <button class="boton" onclick="agregarFigura('cilindro')">+ Cilindro</button>
+        <button class="boton" onclick="agregarFigura('toro')">+ Toro</button>
+        <button class="boton" onclick="duplicarFigura()">➕ Duplicar</button>
+        <button class="boton" onclick="centrarFigura()">🎯 Centrar</button>
+        <button class="boton" onclick="resetFiguraTransformacion()">↩️ Resetear Transform</button>
+        <button class="boton" onclick="mostrarPanel('listaBox')">📋 Figuras</button>
+        <button class="boton" onclick="renombrarFigura()">✏️ Renombrar</button>
+        <button class="boton" onclick="toggleObjectVisibility(objetoSeleccionado)">🙈 Ocultar</button>
+        <button class="boton" onclick="agregarFrame()">+ Frame</button>
+        <button class="boton" onclick="reproducirAnimacion()">▶ Animar</button>
+        <button class="boton" onclick="exportarVideo()">🎥 Exportar</button>
+        <button class="boton" onclick="mostrarPanel('lightsBox')">💡 Luces</button> <!-- Nuevo botón -->
+        <button class="boton" onclick="mostrarPanel('objectInfoBox')">ℹ️ Info</button>
+        <button class="boton" onclick="mostrarPanel('materialsBox')">🌈 Materiales</button> <!-- Nuevo botón -->
+    </div>
+
+    <!-- Panel de Selección de Color -->
+    <div id="colorBox" class="panel">
+        <label>🎨 Color:</label>
+        <input type="color" id="colorPicker" />
+    </div>
+
+    <!-- Panel de Configuración General -->
+    <div id="configBox" class="panel">
+        <label>⚙️ Vel. Movimiento:</label>
+        <input type="range" id="velocidadSlider" min="0.01" max="0.2" step="0.01" value="0.05">
+        <span id="velocidadLabel">0.05</span>
+        <hr style="border-color: #444; margin: 10px 0;">
+        <label>🌈 Color de Fondo:</label>
+        <input type="color" id="backgroundColorPicker" value="#000000" />
+        <hr style="border-color: #444; margin: 10px 0;">
+        <label>🎚 Modo Transformación:</label>
+        <div class="modo-transformacion">
+            <button id="btnModoTrasladar" onclick="establecerModoTransformacion('translate')" class="activo">Mover</button>
+            <button id="btnModoRotar" onclick="establecerModoTransformacion('rotate')">Rotar</button>
+            <button id="btnModoEscalar" onclick="establecerModoTransformacion('scale')">Escalar</button>
+        </div>
+        <div class="material-properties">
+            <hr style="border-color: #444; margin: 10px 0;">
+            <label>✨ Rugosidad:</label>
+            <input type="range" id="roughnessSlider" min="0" max="1" step="0.01" value="0.5">
+            <span id="roughnessLabel">0.50</span>
+            <label>🌟 Metalicidad:</label>
+            <input type="range" id="metalnessSlider" min="0" max="1" step="0.01" value="0.0">
+            <span id="metalnessLabel">0.00</span>
+        </div>
+        <hr style="border-color: #444; margin: 10px 0;">
+        <button class="boton" onclick="toggleOrbitControls()">🕹️ Bloquear Cámara</button>
+        <button class="boton" onclick="resetCameraView()">🔄 Resetear Cámara</button>
+    </div>
+
+    <!-- Panel de Lista de Figuras en Escena -->
+    <div id="listaBox" class="panel">
+        <h3>📋 Figuras en Escena</h3>
+        <div id="listaContenido"></div>
+    </div>
+
+    <!-- Nuevo Panel de Información del Objeto -->
+    <div id="objectInfoBox" class="panel">
+        <h4>ℹ️ Info Objeto</h4>
+        <div>Pos X: <span id="infoPosX" class="value">0.00</span></div>
+        <div>Pos Y: <span id="infoPosY" class="value">0.00</span></div>
+        <div>Pos Z: <span id="infoPosZ" class="value">0.00</span></div>
+        <hr style="border-color: #444; margin: 8px 0;">
+        <div>Rot X: <span id="infoRotX" class="value">0.00</span></div>
+        <div>Rot Y: <span id="infoRotY" class="value">0.00</span></div>
+        <div>Rot Z: <span id="infoRotZ" class="value">0.00</span></div>
+        <hr style="border-color: #444; margin: 8px 0;">
+        <div>Esc X: <span id="infoScaleX" class="value">1.00</span></div>
+        <div>Esc Y: <span id="infoScaleY" class="value">1.00</span></div>
+        <div>Esc Z: <span id="infoScaleZ" class="value">1.00</span></div>
+    </div>
+
+    <!-- Nuevo Panel de Herramientas -->
+    <div id="toolsBox" class="panel">
+        <h4>🛠️ Herramientas</h4>
+        <div class="panel-section">
+            <h4>Alineación y Snapping</h4>
+            <div class="button-grid">
+                <button class="boton" onclick="toggleGridSnapping()" id="btnGridSnapping">📍 Snapping Rejilla</button>
+                <button class="boton" onclick="toggleObjectSnapping()" id="btnObjectSnapping">🔗 Snapping Objeto</button>
+                <button class="boton" onclick="alignObjectToAxis('x')">📏 Alinear X</button>
+                <button class="boton" onclick="alignObjectToAxis('y')">📏 Alinear Y</button>
+                <button class="boton" onclick="alignObjectToAxis('z')">📏 Alinear Z</button>
+                <button class="boton" onclick="alignSelectedToObject()">↔️ Alinear a Otro</button>
+            </div>
+        </div>
+        <div class="panel-section">
+            <h4>Medición</h4>
+            <div class="button-grid">
+                <button class="boton" onclick="measureDistance()">📏 Medir Distancia</button>
+            </div>
+        </div>
+        <div class="panel-section">
+            <h4>Gestión de Objetos</h4>
+            <div class="button-grid">
+                <button class="boton" onclick="groupSelectedObjects()">📦 Agrupar</button>
+                <button class="boton" onclick="ungroupSelectedObject()">🔓 Desagrupar</button>
+                <button class="boton" onclick="hideAllObjects()">🙈 Ocultar Todo</button>
+                <button class="boton" onclick="showAllObjects()">👁️ Mostrar Todo</button>
+                <button class="boton" onclick="isolateSelectedObject()">🔬 Aislar</button>
+            </div>
+        </div>
+        <div class="panel-section">
+            <h4>Importar/Exportar</h4>
+            <div class="button-grid">
+                <button class="boton" onclick="exportSceneJSON()">📤 Exportar JSON</button>
+                <button class="boton" onclick="importSceneJSON()">📥 Importar JSON</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nuevo Panel de Luces -->
+    <div id="lightsBox" class="panel">
+        <h4>💡 Luces</h4>
+        <div class="panel-section">
+            <h4>Luces de Escena</h4>
+            <div class="button-grid">
+                <button class="boton" onclick="togglePointLight()" id="btnPointLight">💡 Luz de Punto</button>
+                <button class="boton" onclick="toggleHemisphereLight()" id="btnHemisphereLight">☀️ Luz Hemisférica</button>
+                <button class="boton" onclick="toggleSpotLight()" id="btnSpotLight">🔦 Foco</button>
+            </div>
+        </div>
+        <div class="panel-section">
+            <h4>Configuración de Luces</h4>
+            <label>Intensidad Luz Ambiente:</label>
+            <input type="range" id="ambientLightIntensity" min="0" max="2" step="0.01" value="0.8">
+            <span id="ambientLightIntensityLabel">0.80</span>
+            <label>Intensidad Luz Direccional:</label>
+            <input type="range" id="directionalLightIntensity" min="0" max="2" step="0.01" value="0.6">
+            <span id="directionalLightIntensityLabel">0.60</span>
+        </div>
+    </div>
+
+    <!-- Nuevo Panel de Materiales -->
+    <div id="materialsBox" class="panel">
+        <h4>🌈 Materiales</h4>
+        <div class="panel-section">
+            <h4>Preajustes</h4>
+            <select id="materialPresetSelect" onchange="applyMaterialPreset()">
+                <option value="default">Estándar</option>
+                <option value="shinyPlastic">Plástico Brillante</option>
+                <option value="matte">Mate</option>
+                <option value="metal">Metal</option>
+                <option value="glass">Vidrio (Experimental)</option>
+            </select>
+        </div>
+        <div class="panel-section">
+            <h4>Propiedades Avanzadas</h4>
+            <label>Color (Material):</label>
+            <input type="color" id="materialColorPicker" />
+            <label>Rugosidad:</label>
+            <input type="range" id="materialRoughnessSlider" min="0" max="1" step="0.01" value="0.5">
+            <span id="materialRoughnessLabel">0.50</span>
+            <label>Metalicidad:</label>
+            <input type="range" id="materialMetalnessSlider" min="0" max="1" step="0.01" value="0.0">
+            <span id="materialMetalnessLabel">0.00</span>
+            <label>Transparencia (Opacidad):</label>
+            <input type="range" id="materialOpacitySlider" min="0" max="1" step="0.01" value="1.0">
+            <span id="materialOpacityLabel">1.00</span>
+        </div>
+    </div>
+
+
+    <!-- Notificación Toast -->
+    <div id="toast"></div>
+
+    <!-- Diálogo de Confirmación General -->
+    <div id="dialogoConfirmacion" class="overlay">
+        <div class="dialogo">
+            <h3 id="dialogoTitulo"></h3>
+            <p id="dialogoMensaje"></p>
+            <div class="dialogo-botones">
+                <button id="btnDialogoSi">Sí</button>
+                <button id="btnDialogoNo">No</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Diálogo para Renombrar Figuras -->
+    <div id="renameDialog" style="display: none;">
+        <h3>Renombrar Figura</h3>
+        <input type="text" id="renameInput" placeholder="Nuevo nombre" />
+        <div id="renameButtons">
+            <button onclick="confirmarRenombrar()">Aceptar</button>
+            <button onclick="cancelarRenombrar()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Scripts de Three.js y Controles -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/controls/TransformControls.js"></script>
+    <script>
+        // Declaraciones de variables globales al principio del script
+        const escena = new THREE.Scene();
+        const render = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+        document.body.appendChild(render.domElement); // Aseguramos que el canvas esté en el DOM desde el principio
+
+        let perspectiveCamera;
+        let orthographicCamera;
+        let camara; // La cámara activa
+        let isPerspectiveCamera = true;
+
+        let controls;
+        let transformControls;
+
+        // Luces iniciales
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        escena.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        directionalLight.position.set(5, 10, 7.5).normalize();
+        escena.add(directionalLight);
+
+        const gridHelper = new THREE.GridHelper(10, 10);
+        escena.add(gridHelper);
+        let gridVisible = true;
+
+        const objetos = []; // Contiene todos los objetos Mesh en la escena
+        const grupos = []; // Contiene objetos THREE.Group
+        const contador = { cubo: 0, esfera: 0, cono: 0, cilindro: 0, toro: 0, grupo: 0 }; // Añadido 'toro' y 'grupo'
+        const raycaster = new THREE.Raycaster();
+        const puntero = new THREE.Vector2();
+
+        let objetoSeleccionado = null; // Puede ser un Mesh o un Group
+        let modoTransformacion = 'translate';
+        let uiOculta = false;
+        let lastTapTime = 0;
+
+        let ultimoEstadoObjetoParaTransform = null;
+
+        const colorBox = document.getElementById("colorBox");
+        const colorPicker = document.getElementById("colorPicker");
+        const slider = document.getElementById("velocidadSlider");
+        const velLabel = document.getElementById("velocidadLabel");
+        const listaBox = document.getElementById("listaBox");
+        const listaContenido = document.getElementById("listaContenido");
+        const toast = document.getElementById("toast");
+        const backgroundColorPicker = document.getElementById("backgroundColorPicker");
+
+        const renameDialog = document.getElementById("renameDialog");
+        const renameInput = document.getElementById("renameInput");
+
+        // Nuevos elementos para propiedades de material (en configBox)
+        const roughnessSlider = document.getElementById("roughnessSlider");
+        const roughnessLabel = document.getElementById("roughnessLabel");
+        const metalnessSlider = document.getElementById("metalnessSlider");
+        const metalnessLabel = document.getElementById("metalnessLabel");
+        const materialPropertiesDiv = document.querySelector(".material-properties");
+
+        // Nuevo elemento para panel de información del objeto
+        const objectInfoBox = document.getElementById("objectInfoBox");
+        const infoPosX = document.getElementById("infoPosX");
+        const infoPosY = document.getElementById("infoPosY");
+        const infoPosZ = document.getElementById("infoPosZ");
+        const infoRotX = document.getElementById("infoRotX");
+        const infoRotY = document.getElementById("infoRotY");
+        const infoRotZ = document.getElementById("infoRotZ");
+        const infoScaleX = document.getElementById("infoScaleX");
+        const infoScaleY = document.getElementById("infoScaleY");
+        const infoScaleZ = document.getElementById("infoScaleZ");
+
+        // Nuevos elementos para los paneles de Herramientas, Luces, Materiales
+        const toolsBox = document.getElementById("toolsBox");
+        const lightsBox = document.getElementById("lightsBox");
+        const materialsBox = document.getElementById("materialsBox");
+
+        // Luz de punto, hemisférica y foco
+        let pointLight = null;
+        let hemisphereLight = null;
+        let spotLight = null;
+
+        // Sliders de intensidad de luz
+        const ambientLightIntensitySlider = document.getElementById("ambientLightIntensity");
+        const ambientLightIntensityLabel = document.getElementById("ambientLightIntensityLabel");
+        const directionalLightIntensitySlider = document.getElementById("directionalLightIntensity");
+        const directionalLightIntensityLabel = document.getElementById("directionalLightIntensityLabel");
+
+        // Propiedades de material avanzadas (en materialsBox)
+        const materialColorPicker = document.getElementById("materialColorPicker");
+        const materialRoughnessSlider = document.getElementById("materialRoughnessSlider");
+        const materialRoughnessLabel = document.getElementById("materialRoughnessLabel");
+        const materialMetalnessSlider = document.getElementById("materialMetalnessSlider");
+        const materialMetalnessLabel = document.getElementById("materialMetalnessLabel");
+        const materialOpacitySlider = document.getElementById("materialOpacitySlider");
+        const materialOpacityLabel = document.getElementById("materialOpacityLabel");
+        const materialPresetSelect = document.getElementById("materialPresetSelect");
+
+
+        let velocidadMovimiento = 0.05; // Valor por defecto, se actualizará con el slider
+
+        const dialogoConfirmacion = document.getElementById('dialogoConfirmacion');
+        const dialogoTitulo = document.getElementById('dialogoTitulo');
+        const dialogoMensaje = document.getElementById('dialogoMensaje');
+        const btnDialogoSi = document.getElementById('btnDialogoSi');
+        const btnDialogoNo = document.getElementById('btnDialogoNo');
+        let accionConfirmacion = null;
+
+        const historial = [];
+        let indiceHistorial = -1;
+        const MAX_HISTORIAL = 50;
+
+        const keyframes = new Map(); // Declaración de keyframes al principio
+
+        // Snapping
+        let gridSnappingEnabled = false;
+        let objectSnappingEnabled = false;
+        let isMeasuring = false;
+        let firstMeasurePoint = null;
+
+        // ********* Ajuste clave para el tamaño del canvas y la cámara *********
+        function ajustarCanvasSize() {
+            const barSuperior = document.getElementById('barra-superior');
+            const barInferior = document.getElementById('barra-inferior');
+
+            let barSuperiorHeight = 0;
+            let barInferiorHeight = 0;
+
+            if (!uiOculta) {
+                barSuperiorHeight = barSuperior.offsetHeight;
+                barInferiorHeight = barInferior.offsetHeight;
+            }
+
+            const availableWidth = window.innerWidth;
+            let availableHeight = window.innerHeight - barSuperiorHeight - barInferiorHeight;
+
+            // Asegurar que la altura no sea negativa o cero
+            if (availableHeight <= 0) {
+                availableHeight = 1; // Establecer una altura mínima para evitar errores de WebGL
+            }
+
+            render.setSize(availableWidth, availableHeight);
+            render.domElement.style.top = barSuperiorHeight + 'px';
+            render.domElement.style.height = availableHeight + 'px';
+
+            const aspect = availableWidth / availableHeight;
+
+            // Inicializa las cámaras si no existen, o actualiza sus propiedades
+            if (!perspectiveCamera) {
+                perspectiveCamera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+                perspectiveCamera.position.set(0, 4, 8); // Posición inicial por defecto
+            } else {
+                perspectiveCamera.aspect = aspect;
+                perspectiveCamera.updateProjectionMatrix();
+            }
+
+            const frustumSize = 10; // Tamaño base del frustum, ajusta según la escala de tu escena
+            const halfWidth = frustumSize * aspect / 2;
+            const halfHeight = frustumSize / 2;
+
+            if (!orthographicCamera) {
+                orthographicCamera = new THREE.OrthographicCamera(-halfWidth, halfWidth, halfHeight, -halfHeight, 0.1, 1000);
+                // La posición inicial se copiará de la perspectiva al cambiar por primera vez
+                if (perspectiveCamera) { // Asegurarse de que perspectiveCamera ya exista
+                    orthographicCamera.position.copy(perspectiveCamera.position);
+                }
+            } else {
+                orthographicCamera.left = -halfWidth;
+                orthographicCamera.right = halfWidth;
+                orthographicCamera.top = halfHeight;
+                orthographicCamera.bottom = -halfHeight;
+                orthographicCamera.updateProjectionMatrix();
+            }
+
+            // Asigna la cámara activa
+            camara = isPerspectiveCamera ? perspectiveCamera : orthographicCamera;
+
+            // Asegura que los controles usen la cámara activa
+            if (controls) { // Solo si controls ya está inicializado
+                controls.camera = camara;
+                controls.update(); // Crucial para OrbitControls para reconocer la nueva cámara
+            }
+            if (transformControls) { // Solo si transformControls ya está inicializado
+                transformControls.camera = camara;
+                if (transformControls.object) {
+                    transformControls.updateMatrixWorld();
+                }
+            }
+        }
+
+
+        // Se llama a ajustarCanvasSize al cargar y redimensionar la ventana
+        window.addEventListener("resize", ajustarCanvasSize);
+        // Llamada inicial después de que todo el DOM esté cargado para asegurar alturas correctas
+        window.addEventListener("load", () => {
+            // 1. Ajustar el tamaño del canvas y configurar las cámaras
+            ajustarCanvasSize(); // Esto inicializará `perspectiveCamera` y `camara`
+
+            // 2. Inicializar controls y transformControls *ahora* que `camara` es un objeto válido
+            controls = new THREE.OrbitControls(camara, render.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.minDistance = 2;
+            controls.maxDistance = 100;
+            controls.target.set(0, 1, 0); // Establece el punto alrededor del cual orbita la cámara
+
+            transformControls = new THREE.TransformControls(camara, render.domElement);
+            escena.add(transformControls);
+
+            // 3. Adjuntar listeners para transformControls (después de su inicialización)
+            transformControls.addEventListener('dragging-changed', function (event) {
+                controls.enabled = !event.value;
+                if (!event.value) { // Cuando se suelta el arrastre
+                    updateObjectInfoPanel(); // Actualizar info del panel
+                    if (objetoSeleccionado) {
+                        // Aplicar snapping después de soltar el arrastre
+                        if (gridSnappingEnabled) applyGridSnapping(objetoSeleccionado);
+                        if (objectSnappingEnabled) applyObjectSnapping(objetoSeleccionado);
+                    }
+                }
+            });
+            transformControls.addEventListener('mouseDown', function () {
+                if (objetoSeleccionado) {
+                    ultimoEstadoObjetoParaTransform = {
+                        position: objetoSeleccionado.position.clone(),
+                        rotation: objetoSeleccionado.rotation.clone(),
+                        scale: objetoSeleccionado.scale.clone()
+                    };
+                }
+            });
+            transformControls.addEventListener('mouseUp', function () {
+                if (objetoSeleccionado && ultimoEstadoObjetoParaTransform) {
+                    const newState = {
+                        position: objetoSeleccionado.position.clone(),
+                        rotation: objetoSeleccionado.rotation.clone(),
+                        scale: objetoSeleccionado.scale.clone()
+                    };
+                    if (!ultimoEstadoObjetoParaTransform.position.equals(newState.position) ||
+                        !ultimoEstadoObjetoParaTransform.rotation.equals(newState.rotation) ||
+                        !ultimoEstadoObjetoParaTransform.scale.equals(newState.scale)) {
+                        registrarAccion({ type: 'transform', objectId: objetoSeleccionado.uuid, oldState: ultimoEstadoObjetoParaTransform, newState: newState });
+                    }
+                    ultimoEstadoObjetoParaTransform = null;
+                }
+                updateObjectInfoPanel(); // Actualizar info del panel después de la transformación
+            });
+
+            // 4. Inicializar el slider de velocidad después de que el DOM esté listo
+            velocidadMovimiento = parseFloat(slider.value);
+            slider.addEventListener("input", () => {
+                velocidadMovimiento = parseFloat(slider.value);
+                velLabel.textContent = velocidadMovimiento.toFixed(2);
+            });
+
+            // Listeners para los sliders de material en configBox (antiguos)
+            roughnessSlider.addEventListener("input", () => {
+                if (objetoSeleccionado && objetoSeleccionado.material && objetoSeleccionado.material.isMeshStandardMaterial) {
+                    const oldRoughness = objetoSeleccionado.material.roughness;
+                    objetoSeleccionado.material.roughness = parseFloat(roughnessSlider.value);
+                    roughnessLabel.textContent = objetoSeleccionado.material.roughness.toFixed(2);
+                    registrarAccion({ type: 'material_roughness', objectId: objetoSeleccionado.uuid, oldValue: oldRoughness, newValue: objetoSeleccionado.material.roughness });
+                }
+            });
+            metalnessSlider.addEventListener("input", () => {
+                if (objetoSeleccionado && objetoSeleccionado.material && objetoSeleccionado.material.isMeshStandardMaterial) {
+                    const oldMetalness = objetoSeleccionado.material.metalness;
+                    objetoSeleccionado.material.metalness = parseFloat(metalnessSlider.value);
+                    metalnessLabel.textContent = objetoSeleccionado.material.metalness.toFixed(2);
+                    registrarAccion({ type: 'material_metalness', objectId: objetoSeleccionado.uuid, oldValue: oldMetalness, newValue: objetoSeleccionado.material.metalness });
+                }
+            });
+
+            // Listeners para los nuevos sliders de luz
+            ambientLightIntensitySlider.addEventListener("input", () => {
+                const oldIntensity = ambientLight.intensity;
+                ambientLight.intensity = parseFloat(ambientLightIntensitySlider.value);
+                ambientLightIntensityLabel.textContent = ambientLight.intensity.toFixed(2);
+                registrarAccion({ type: 'light_intensity', lightType: 'ambient', oldValue: oldIntensity, newValue: ambientLight.intensity });
+            });
+            directionalLightIntensitySlider.addEventListener("input", () => {
+                const oldIntensity = directionalLight.intensity;
+                directionalLight.intensity = parseFloat(directionalLightIntensitySlider.value);
+                directionalLightIntensityLabel.textContent = directionalLight.intensity.toFixed(2);
+                registrarAccion({ type: 'light_intensity', lightType: 'directional', oldValue: oldIntensity, newValue: directionalLight.intensity });
+            });
+
+            // Listeners para los nuevos sliders de material avanzado
+            materialColorPicker.addEventListener("input", () => {
+                if (objetoSeleccionado && objetoSeleccionado.material) {
+                    const oldColor = objetoSeleccionado.userData.lastColor;
+                    objetoSeleccionado.material.color.set(materialColorPicker.value);
+                    const newColor = objetoSeleccionado.material.color.getHex();
+                    registrarAccion({ type: 'color', objectId: objetoSeleccionado.uuid, oldColor: oldColor, newColor: newColor });
+                    objetoSeleccionado.userData.lastColor = newColor;
+                }
+            });
+            materialRoughnessSlider.addEventListener("input", () => {
+                if (objetoSeleccionado && objetoSeleccionado.material && objetoSeleccionado.material.isMeshStandardMaterial) {
+                    const oldRoughness = objetoSeleccionado.material.roughness;
+                    objetoSeleccionado.material.roughness = parseFloat(materialRoughnessSlider.value);
+                    materialRoughnessLabel.textContent = objetoSeleccionado.material.roughness.toFixed(2);
+                    registrarAccion({ type: 'material_roughness', objectId: objetoSeleccionado.uuid, oldValue: oldRoughness, newValue: objetoSeleccionado.material.roughness });
+                }
+            });
+            materialMetalnessSlider.addEventListener("input", () => {
+                if (objetoSeleccionado && objetoSeleccionado.material && objetoSeleccionado.material.isMeshStandardMaterial) {
+                    const oldMetalness = objetoSeleccionado.material.metalness;
+                    objetoSeleccionado.material.metalness = parseFloat(materialMetalnessSlider.value);
+                    materialMetalnessLabel.textContent = objetoSeleccionado.material.metalness.toFixed(2);
+                    registrarAccion({ type: 'material_metalness', objectId: objetoSeleccionado.uuid, oldValue: oldMetalness, newValue: objetoSeleccionado.material.metalness });
+                }
+            });
+            materialOpacitySlider.addEventListener("input", () => {
+                if (objetoSeleccionado && objetoSeleccionado.material) {
+                    const oldOpacity = objetoSeleccionado.material.opacity;
+                    objetoSeleccionado.material.opacity = parseFloat(materialOpacitySlider.value);
+                    objetoSeleccionado.material.transparent = objetoSeleccionado.material.opacity < 1.0;
+                    materialOpacityLabel.textContent = objetoSeleccionado.material.opacity.toFixed(2);
+                    registrarAccion({ type: 'material_opacity', objectId: objetoSeleccionado.uuid, oldValue: oldOpacity, newValue: objetoSeleccionado.material.opacity });
+                }
+            });
+
+
+            // 5. Establecer el modo de transformación inicial
+            establecerModoTransformacion('translate'); // Llamar después de que transformControls esté inicializado
+
+            // 6. Añadir un objeto por defecto y iniciar el bucle de renderizado
+            agregarFigura('cubo'); // Añade un cubo por defecto al iniciar para que la pantalla no esté vacía
+            bucle(); // Inicia el bucle de renderizado
+        });
+
+
+        // Establecer un color de fondo inicial que no sea negro puro para depuración
+        escena.background = new THREE.Color(0x222222); // Gris oscuro
+
+        backgroundColorPicker.addEventListener("input", () => {
+            const oldColor = escena.background ? escena.background.getHex() : 0x222222; // Usar 0x222222 como fallback
+            escena.background = new THREE.Color(backgroundColorPicker.value);
+            const newColor = escena.background.getHex();
+            registrarAccion({ type: 'background_color', oldColor: oldColor, newColor: newColor });
+        });
+
+        function mostrarToast(mensaje, duracion = 3000) {
+            toast.textContent = mensaje;
+            toast.classList.add("mostrar");
+            setTimeout(() => {
+                toast.classList.remove("mostrar");
+            }, duracion);
+        }
+
+        // Función para ocultar todos los paneles
+        function ocultarTodosLosPaneles() {
+            document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
+            renameDialog.style.display = 'none'; // Asegurarse de que el diálogo de renombrar también se oculte
+            dialogoConfirmacion.style.display = 'none'; // Asegurarse de que el diálogo de confirmación también se oculte
+        }
+
+        function mostrarPanel(panelId) {
+            const panel = document.getElementById(panelId);
+            ocultarTodosLosPaneles(); // Oculta todos los paneles antes de mostrar el deseado
+            panel.style.display = "flex"; // Usar "flex" para los nuevos paneles con grid de botones
+
+            if (panelId === 'listaBox') {
+                actualizarLista();
+            } else if (panelId === 'configBox') {
+                backgroundColorPicker.value = "#" + (escena.background ? escena.background.getHexString() : "222222");
+                // Actualizar sliders de material en configBox (antiguos)
+                if (objetoSeleccionado && objetoSeleccionado.material && objetoSeleccionado.material.isMeshStandardMaterial) {
+                    materialPropertiesDiv.style.display = 'block';
+                    roughnessSlider.value = objetoSeleccionado.material.roughness;
+                    roughnessLabel.textContent = objetoSeleccionado.material.roughness.toFixed(2);
+                    metalnessSlider.value = objetoSeleccionado.material.metalness;
+                    metalnessLabel.textContent = objetoSeleccionado.material.metalness.toFixed(2);
+                } else {
+                    materialPropertiesDiv.style.display = 'none';
+                }
+            } else if (panelId === 'objectInfoBox') {
+                updateObjectInfoPanel();
+            } else if (panelId === 'lightsBox') {
+                ambientLightIntensitySlider.value = ambientLight.intensity;
+                ambientLightIntensityLabel.textContent = ambientLight.intensity.toFixed(2);
+                directionalLightIntensitySlider.value = directionalLight.intensity;
+                directionalLightIntensityLabel.textContent = directionalLight.intensity.toFixed(2);
+                document.getElementById('btnPointLight').classList.toggle('activo', pointLight !== null);
+                document.getElementById('btnHemisphereLight').classList.toggle('activo', hemisphereLight !== null);
+                document.getElementById('btnSpotLight').classList.toggle('activo', spotLight !== null);
+            } else if (panelId === 'materialsBox') {
+                // Actualizar sliders y color picker del panel de materiales
+                if (objetoSeleccionado && objetoSeleccionado.material) {
+                    materialColorPicker.value = "#" + objetoSeleccionado.material.color.getHexString();
+                    if (objetoSeleccionado.material.isMeshStandardMaterial || objetoSeleccionado.material.isMeshPhysicalMaterial) { // Check for MeshPhysicalMaterial too
+                        materialRoughnessSlider.value = objetoSeleccionado.material.roughness;
+                        materialRoughnessLabel.textContent = objetoSeleccionado.material.roughness.toFixed(2);
+                        materialMetalnessSlider.value = objetoSeleccionado.material.metalness;
+                        materialMetalnessLabel.textContent = objetoSeleccionado.material.metalness.toFixed(2);
+                        materialRoughnessSlider.disabled = false; // Enable sliders
+                        materialMetalnessSlider.disabled = false;
+                    } else { // Si no es MeshStandardMaterial o MeshPhysicalMaterial, deshabilitar sliders de rugosidad/metalicidad
+                        materialRoughnessSlider.value = 0.5;
+                        materialRoughnessLabel.textContent = "N/A";
+                        materialMetalnessSlider.value = 0.0;
+                        materialMetalnessLabel.textContent = "N/A";
+                        materialRoughnessSlider.disabled = true; // Disable sliders
+                        materialMetalnessSlider.disabled = true;
+                    }
+                    materialOpacitySlider.value = objetoSeleccionado.material.opacity;
+                    materialOpacityLabel.textContent = objetoSeleccionado.material.opacity.toFixed(2);
+                    materialOpacitySlider.disabled = false; // Opacity is generally available
+                    materialPresetSelect.disabled = false;
+                    materialPresetSelect.value = objetoSeleccionado.userData.materialPreset || 'default';
+                } else {
+                    // Si no hay objeto seleccionado, deshabilitar controles
+                    materialColorPicker.value = "#ffffff";
+                    materialRoughnessSlider.value = 0.5;
+                    materialRoughnessLabel.textContent = "N/A";
+                    materialMetalnessSlider.value = 0.0;
+                    materialMetalnessLabel.textContent = "N/A";
+                    materialOpacitySlider.value = 1.0;
+                    materialOpacityLabel.textContent = "N/A";
+                    materialColorPicker.disabled = true;
+                    materialRoughnessSlider.disabled = true;
+                    materialMetalnessSlider.disabled = true;
+                    materialOpacitySlider.disabled = true;
+                    materialPresetSelect.disabled = true;
+                    materialPresetSelect.value = 'default';
+                }
+            } else if (panelId === 'toolsBox') {
+                document.getElementById('btnGridSnapping').classList.toggle('activo', gridSnappingEnabled);
+                document.getElementById('btnObjectSnapping').classList.toggle('activo', objectSnappingEnabled);
+            }
+        }
+
+        function mostrarColorPicker(obj) {
+            if (!obj || !obj.material || !obj.material.color) {
+                console.warn("mostrarColorPicker: Objeto o material inválido.", obj);
+                ocultarColorPicker();
+                return;
+            }
+            colorPicker.value = "#" + obj.material.color.getHexString();
+            colorBox.style.display = "block";
+            colorPicker.oninput = () => {
+                const oldColor = obj.userData.lastColor;
+                obj.material.color.set(colorPicker.value);
+                const newColor = obj.material.color.getHex();
+                registrarAccion({ type: 'color', objectId: obj.uuid, oldColor: oldColor, newColor: newColor });
+                obj.userData.lastColor = newColor;
+            };
+        }
+
+        function ocultarColorPicker() {
+            colorBox.style.display = "none";
+        }
+
+        function actualizarBotonesTransformacion() {
+            document.querySelectorAll('.modo-transformacion button').forEach(btn => {
+                btn.classList.remove('activo');
+            });
+            const btnIdMap = {
+                'translate': 'btnModoTrasladar',
+                'rotate': 'btnModoRotar',
+                'scale': 'btnModoEscalar'
+            };
+            // Asegurarse de que el elemento exista antes de intentar acceder a classList
+            const activeBtn = document.getElementById(btnIdMap[modoTransformacion]);
+            if (activeBtn) {
+                activeBtn.classList.add('activo');
+            }
+        }
+
+        function establecerModoTransformacion(modo) {
+            modoTransformacion = modo;
+            if (transformControls) { // Asegurarse de que transformControls esté inicializado
+                transformControls.setMode(modo);
+            }
+            actualizarBotonesTransformacion();
+            mostrarToast(`Modo: ${modo.charAt(0).toUpperCase() + modo.slice(1)}`);
+        }
+        // establecerModoTransformacion('translate'); // Se mueve a window.onload
+
+
+        function toggleUI() {
+            const barSuperior = document.getElementById('barra-superior');
+            const barInferior = document.getElementById('barra-inferior');
+            const btnToggleUI = document.getElementById('btnToggleUI');
+
+            uiOculta = !uiOculta;
+
+            if (uiOculta) {
+                barSuperior.classList.add('barra-oculta-superior');
+                barInferior.classList.add('barra-oculta-inferior');
+                btnToggleUI.textContent = '👀 Mostrar UI';
+                ocultarTodosLosPaneles(); // Oculta todos los paneles
+                if (transformControls) { // Asegurarse de que transformControls esté inicializado
+                    transformControls.detach();
+                }
+                objetoSeleccionado = null; // Deseleccionar al ocultar UI
+                actualizarLista();
+                mostrarToast("UI Oculta");
+            } else {
+                barSuperior.classList.remove('barra-oculta-superior');
+                barInferior.classList.remove('barra-oculta-inferior');
+                btnToggleUI.textContent = '👁️ Ocultar UI';
+                if (objetoSeleccionado && transformControls) { // Asegurarse de que transformControls esté inicializado
+                    transformControls.attach(objetoSeleccionado);
+                }
+                mostrarToast("UI Visible");
+            }
+            ajustarCanvasSize();
+        }
+
+        function toggleGrid() {
+            const oldGridVisible = gridVisible;
+            gridVisible = !gridVisible;
+            gridHelper.visible = gridVisible;
+            document.getElementById('btnGrid').classList.toggle('activo', gridVisible);
+            mostrarToast(gridVisible ? "⊞ Rejilla visible" : "⊟ Rejilla oculta");
+            registrarAccion({ type: 'toggle_grid', oldState: oldGridVisible, newState: gridVisible });
+        }
+
+        function toggleCameraProjection() {
+            const oldType = isPerspectiveCamera ? 'perspective' : 'orthographic';
+            
+            // Guardar la posición y el target de la cámara actual
+            const currentPosition = camara.position.clone();
+            const currentTarget = controls.target.clone();
+
+            isPerspectiveCamera = !isPerspectiveCamera;
+            ajustarCanvasSize(); // Reajusta el canvas y la cámara (crea o actualiza la nueva)
+
+            // Aplicar la posición y el target guardados a la nueva cámara
+            camara.position.copy(currentPosition);
+            controls.target.copy(currentTarget);
+            controls.update(); // Importante para que OrbitControls se adapte a la nueva cámara
+
+            const newType = isPerspectiveCamera ? 'perspective' : 'orthographic';
+            document.getElementById('btnProjection').classList.toggle('activo', !isPerspectiveCamera); // Orthographic is 'activo'
+            mostrarToast(`Proyección: ${newType.charAt(0).toUpperCase() + newType.slice(1)}`);
+            registrarAccion({ type: 'camera_projection', oldType: oldType, newType: newType });
+        }
+
+        // Nuevas funciones para vistas de cámara predefinidas
+        function setFrontView() {
+            const oldPos = camara.position.clone();
+            const oldTarget = controls.target.clone();
+            controls.target.set(0, 0, 0); // O el centro de tu escena
+            camara.position.set(0, 0, 10); // Vista frontal
+            controls.update();
+            mostrarToast("Vista: Frontal");
+            ocultarTodosLosPaneles();
+            registrarAccion({ type: 'camera_view', oldPosition: oldPos.toArray(), oldTarget: oldTarget.toArray(), newPosition: camara.position.toArray(), newTarget: controls.target.toArray() });
+        }
+
+        function setTopView() {
+            const oldPos = camara.position.clone();
+            const oldTarget = controls.target.clone();
+            controls.target.set(0, 0, 0);
+            camara.position.set(0, 10, 0); // Vista superior
+            controls.update();
+            mostrarToast("Vista: Superior");
+            ocultarTodosLosPaneles();
+            registrarAccion({ type: 'camera_view', oldPosition: oldPos.toArray(), oldTarget: oldTarget.toArray(), newPosition: camara.position.toArray(), newTarget: controls.target.toArray() });
+        }
+
+        function setSideView() {
+            const oldPos = camara.position.clone();
+            const oldTarget = controls.target.clone();
+            controls.target.set(0, 0, 0);
+            camara.position.set(10, 0, 0); // Vista lateral (derecha)
+            controls.update();
+            mostrarToast("Vista: Lateral");
+            ocultarTodosLosPaneles();
+            registrarAccion({ type: 'camera_view', oldPosition: oldPos.toArray(), oldTarget: oldTarget.toArray(), newPosition: camara.position.toArray(), newTarget: controls.target.toArray() });
+        }
+
+        function toggleOrbitControls() {
+            controls.enabled = !controls.enabled;
+            mostrarToast(controls.enabled ? "🕹️ Controles de cámara activados" : "🚫 Controles de cámara bloqueados");
+        }
+
+        function resetCameraView() {
+            const oldPos = camara.position.clone();
+            const oldTarget = controls.target.clone();
+            camara.position.set(0, 4, 8);
+            controls.target.set(0, 1, 0);
+            controls.update();
+            mostrarToast("🔄 Vista de cámara reseteada.");
+            registrarAccion({ type: 'camera_view', oldPosition: oldPos.toArray(), oldTarget: oldTarget.toArray(), newPosition: camara.position.toArray(), newTarget: controls.target.toArray() });
+        }
+
+
+        function agregarFigura(tipo) {
+            let geo;
+            switch (tipo) {
+                case 'cubo': geo = new THREE.BoxGeometry(1, 1, 1); break;
+                case 'esfera': geo = new THREE.SphereGeometry(0.6, 32, 16); break;
+                case 'cono': geo = new THREE.ConeGeometry(0.5, 1.2, 32); break;
+                case 'cilindro': geo = new THREE.CylinderGeometry(0.5, 0.5, 1.2, 32); break;
+                case 'toro': geo = new THREE.TorusGeometry(0.5, 0.2, 16, 100); break; // Nueva geometría de Toro
+                default: return;
+            }
+            const mat = new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff, roughness: 0.5, metalness: 0.0, transparent: false, opacity: 1.0 }); // Valores por defecto para roughness y metalness
+            const figura = new THREE.Mesh(geo, mat);
+            figura.position.set(Math.random() * 3 - 1.5, 0.6, Math.random() * 3 - 1.5);
+            contador[tipo]++;
+            figura.name = tipo.charAt(0).toUpperCase() + tipo.slice(1) + " " + contador[tipo];
+            figura.userData.tipo = tipo;
+            figura.userData.initialPosition = figura.position.clone();
+            figura.userData.initialRotation = figura.rotation.clone();
+            figura.userData.initialScale = figura.scale.clone();
+            figura.userData.lastColor = mat.color.getHex();
+            figura.userData.roughness = mat.roughness; // Guardar propiedad de material
+            figura.userData.metalness = mat.metalness; // Guardar propiedad de material
+            figura.userData.opacity = mat.opacity; // Guardar opacidad
+            figura.userData.materialPreset = 'default'; // Nuevo: preset de material
+            figura.userData.visible = true; // Nueva propiedad para ocultar/mostrar
+            escena.add(figura);
+            objetos.push(figura);
+            actualizarLista();
+            seleccionarFigura(figura);
+            mostrarToast(`✔️ ${figura.name} agregado.`);
+            registrarAccion({ type: 'add', objectId: figura.uuid, objectData: serializarObjeto(figura) });
+        }
+
+        function duplicarFigura() {
+            if (!objetoSeleccionado) {
+                mostrarToast("☝️ Selecciona una figura para duplicar.");
+                return;
+            }
+            const originalData = serializarObjeto(objetoSeleccionado);
+            const nuevaFigura = deserializarObjeto(originalData);
+            nuevaFigura.uuid = THREE.MathUtils.generateUUID(); // Generar un nuevo UUID
+            const tipo = nuevaFigura.userData.tipo;
+            if (nuevaFigura.userData.isGroup) {
+                contador.grupo++;
+                nuevaFigura.name = `Grupo ${contador.grupo}`;
+                grupos.push(nuevaFigura);
+            } else {
+                contador[tipo]++;
+                nuevaFigura.name = tipo.charAt(0).toUpperCase() + tipo.slice(1) + " " + contador[tipo];
+            }
+            nuevaFigura.position.x += 0.5;
+            nuevaFigura.position.z += 0.5;
+            // No resetear initialPosition/Rotation/Scale, ya que son relativas al grupo si es un grupo
+            // O si es un objeto individual, se duplica su estado actual.
+            escena.add(nuevaFigura);
+            objetos.push(nuevaFigura);
+            actualizarLista();
+            seleccionarFigura(nuevaFigura);
+            mostrarToast(`✔️ ${nuevaFigura.name} duplicado.`);
+            registrarAccion({ type: 'add', objectId: nuevaFigura.uuid, objectData: serializarObjeto(nuevaFigura) });
+        }
+
+        function eliminarFigura(obj) {
+            if (obj) {
+                mostrarDialogoConfirmacion('eliminar', obj);
+            }
+        }
+
+        function confirmarEliminar(obj) {
+            // Si es un grupo, eliminar también sus hijos de la lista de objetos
+            if (obj.userData.isGroup) {
+                obj.children.forEach(child => {
+                    const index = objetos.indexOf(child);
+                    if (index > -1) objetos.splice(index, 1);
+                });
+                const groupIndex = grupos.indexOf(obj);
+                if (groupIndex > -1) grupos.splice(groupIndex, 1);
+            } else {
+                const index = objetos.indexOf(obj);
+                if (index > -1) objetos.splice(index, 1);
+            }
+            
+            escena.remove(obj);
+            if (objetoSeleccionado && objetoSeleccionado.uuid === obj.uuid) {
+                seleccionarFigura(null); // Deseleccionar si era el objeto activo
+            }
+            actualizarLista();
+            mostrarToast(`🗑️ ${obj.name} eliminado.`);
+            registrarAccion({ type: 'delete', objectData: serializarObjeto(obj) });
+        }
+
+        function actualizarLista() {
+            listaContenido.innerHTML = "";
+            const allSceneObjects = [...objetos, ...grupos]; // Incluir grupos en la lista
+            if (allSceneObjects.length === 0) {
+                listaContenido.innerHTML = "<p style='padding: 10px; text-align: center; color: #aaa; font-size:12px;'>No hay figuras en la escena.</p>";
+                return;
+            }
+            allSceneObjects.forEach(obj => {
+                const item = document.createElement("div");
+                item.className = `itemLista ${objetoSeleccionado && objetoSeleccionado.uuid === obj.uuid ? 'seleccionado' : ''}`;
+                item.textContent = obj.name + (obj.userData.isGroup ? " (Grupo)" : ""); // Indicar si es un grupo
+                item.onclick = (e) => {
+                    e.stopPropagation();
+                    seleccionarFiguraDesdeLista(obj);
+                };
+
+                const deleteButton = document.createElement("button");
+                deleteButton.className = "boton-eliminar-item";
+                deleteButton.textContent = "X";
+                deleteButton.onclick = (e) => {
+                    e.stopPropagation();
+                    eliminarFigura(obj);
+                };
+                item.appendChild(deleteButton);
+                listaContenido.appendChild(item);
+            });
+        }
+
+        function seleccionarFiguraDesdeLista(obj) {
+            seleccionarFigura(obj);
+            // No ocultar el panel para que el usuario pueda seguir viendo la lista
+            // mostrarPanel('listaBox'); // Comentado para mantener la lista visible
+        }
+
+        function seleccionarFigura(obj) {
+            console.log("Seleccionando figura:", obj ? obj.name : "null");
+            if (objetoSeleccionado === obj) {
+                console.log("Figura ya seleccionada, no hacer nada.");
+                return;
+            }
+
+            if (objetoSeleccionado) {
+                const oldItem = document.querySelector(`.itemLista.seleccionado`);
+                if (oldItem) oldItem.classList.remove('seleccionado');
+                if (transformControls) {
+                    transformControls.detach();
+                    console.log("TransformControls desvinculado del objeto anterior.");
+                }
+            }
+
+            objetoSeleccionado = obj;
+
+            if (objetoSeleccionado) {
+                if (!uiOculta && transformControls) {
+                    transformControls.attach(obj);
+                    console.log("TransformControls vinculado a:", obj.name);
+                }
+                // Si es un grupo, no mostrar color picker o propiedades de material individuales
+                if (objetoSeleccionado.userData.isGroup) {
+                    ocultarColorPicker();
+                    materialPropertiesDiv.style.display = 'none';
+                    // Deshabilitar sliders de material avanzado
+                    materialColorPicker.disabled = true;
+                    materialRoughnessSlider.disabled = true;
+                    materialMetalnessSlider.disabled = true;
+                    materialOpacitySlider.disabled = true;
+                    materialPresetSelect.disabled = true;
+                } else {
+                    mostrarColorPicker(objetoSeleccionado);
+                    // Actualizar sliders de material si el objeto tiene MeshStandardMaterial
+                    if (objetoSeleccionado.material && (objetoSeleccionado.material.isMeshStandardMaterial || objetoSeleccionado.material.isMeshPhysicalMaterial)) {
+                        materialPropertiesDiv.style.display = 'block'; // Para configBox
+                        roughnessSlider.value = objetoSeleccionado.material.roughness;
+                        roughnessLabel.textContent = objetoSeleccionado.material.roughness.toFixed(2);
+                        metalnessSlider.value = objetoSeleccionado.material.metalness;
+                        metalnessLabel.textContent = objetoSeleccionado.material.metalness.toFixed(2);
+
+                        // Habilitar y actualizar sliders de material avanzado
+                        materialColorPicker.disabled = false;
+                        materialColorPicker.value = "#" + objetoSeleccionado.material.color.getHexString();
+                        materialRoughnessSlider.disabled = false;
+                        materialRoughnessSlider.value = objetoSeleccionado.material.roughness;
+                        materialRoughnessLabel.textContent = objetoSeleccionado.material.roughness.toFixed(2);
+                        materialMetalnessSlider.disabled = false;
+                        materialMetalnessSlider.value = objetoSeleccionado.material.metalness;
+                        materialMetalnessLabel.textContent = objetoSeleccionado.material.metalness.toFixed(2);
+                        materialOpacitySlider.disabled = false;
+                        materialOpacitySlider.value = objetoSeleccionado.material.opacity;
+                        materialOpacityLabel.textContent = objetoSeleccionado.material.opacity.toFixed(2);
+                        materialPresetSelect.disabled = false;
+                        materialPresetSelect.value = objetoSeleccionado.userData.materialPreset || 'default';
+
+                    } else { // Si no es MeshStandardMaterial o MeshPhysicalMaterial, ocultar sliders de rugosidad/metalicidad
+                        materialPropertiesDiv.style.display = 'none'; // Para configBox
+                        // Deshabilitar sliders de material avanzado
+                        materialColorPicker.disabled = false; // El color siempre se puede cambiar
+                        materialRoughnessSlider.disabled = true;
+                        materialRoughnessLabel.textContent = "N/A";
+                        materialMetalnessSlider.disabled = true;
+                        materialMetalnessLabel.textContent = "N/A";
+                        materialOpacitySlider.disabled = false; // La opacidad siempre se puede cambiar
+                        materialOpacityLabel.textContent = objetoSeleccionado.material.opacity.toFixed(2);
+                        materialPresetSelect.disabled = false;
+                        materialPresetSelect.value = 'default'; // Restablecer a default
+                    }
+                }
+                updateObjectInfoPanel(); // Actualizar el panel de información
+                mostrarToast(`✨ ${obj.name} seleccionado.`);
+            } else {
+                ocultarColorPicker();
+                materialPropertiesDiv.style.display = 'none'; // Ocultar sliders de material en configBox
+                objectInfoBox.style.display = 'none'; // Ocultar panel de info
+                // Deshabilitar sliders de material avanzado
+                materialColorPicker.disabled = true;
+                materialRoughnessSlider.disabled = true;
+                materialMetalnessSlider.disabled = true;
+                materialOpacitySlider.disabled = true;
+                materialPresetSelect.disabled = true;
+                mostrarToast("🤷‍♂️ Nada seleccionado.");
+                console.log("Objeto deseleccionado.");
+            }
+            actualizarLista();
+        }
+
+        function centrarFigura() {
+            if (objetoSeleccionado) {
+                const oldPos = objetoSeleccionado.position.clone();
+                objetoSeleccionado.position.set(0, objetoSeleccionado.position.y, 0);
+                mostrarToast(`🎯 ${objetoSeleccionado.name} centrado.`);
+                registrarAccion({ type: 'transform', objectId: objetoSeleccionado.uuid, oldState: { position: oldPos.clone(), rotation: objetoSeleccionado.rotation.clone(), scale: objetoSeleccionado.scale.clone() }, newState: { position: objetoSeleccionado.position.clone(), rotation: objetoSeleccionado.rotation.clone(), scale: objetoSeleccionado.scale.clone() } });
+                updateObjectInfoPanel(); // Actualizar info del panel
+            } else {
+                mostrarToast("☝️ Selecciona una figura primero.");
+            }
+        }
+
+        function resetFiguraTransformacion() {
+            if (!objetoSeleccionado) {
+                mostrarToast("☝️ Selecciona una figura para resetear su transformación.");
+                return;
+            }
+            const oldState = {
+                position: objetoSeleccionado.position.clone(),
+                rotation: objetoSeleccionado.rotation.clone(),
+                scale: objetoSeleccionado.scale.clone()
+            };
+            // Si es un grupo, hay que resetear la posición de sus hijos también si se quiere un reset "absoluto"
+            // Para simplificar, reseteamos solo la transformación del objeto/grupo seleccionado.
+            objetoSeleccionado.position.copy(objetoSeleccionado.userData.initialPosition || new THREE.Vector3(0,0,0)); // Fallback por si no tiene initialPosition
+            objetoSeleccionado.rotation.copy(objetoSeleccionado.userData.initialRotation || new THREE.Euler(0,0,0));
+            objetoSeleccionado.scale.copy(objetoSeleccionado.userData.initialScale || new THREE.Vector3(1,1,1));
+            
+            if (transformControls) { // Asegurarse de que transformControls esté inicializado
+                transformControls.updateMatrixWorld();
+            }
+            const newState = {
+                position: objetoSeleccionado.position.clone(),
+                rotation: objetoSeleccionado.rotation.clone(),
+                scale: objetoSeleccionado.scale.clone()
+            };
+            registrarAccion({ type: 'transform', objectId: objetoSeleccionado.uuid, oldState: oldState, newState: newState });
+            mostrarToast(`↩️ Transformación de ${objetoSeleccionado.name} reseteada.`);
+            updateObjectInfoPanel(); // Actualizar info del panel
+        }
+
+        function renombrarFigura() {
+            if (!objetoSeleccionado) {
+                mostrarToast("☝️ Selecciona una figura para renombrar.");
+                return;
+            }
+            ocultarTodosLosPaneles(); // Oculta todos los paneles antes de mostrar el diálogo
+            renameDialog.style.display = 'flex';
+            renameInput.value = objetoSeleccionado.name;
+            renameInput.focus();
+        }
+
+        function confirmarRenombrar() {
+            if (!objetoSeleccionado) {
+                cancelarRenombrar();
+                return;
+            }
+            const oldName = objetoSeleccionado.name;
+            const newName = renameInput.value.trim();
+            if (newName && newName !== oldName) {
+                objetoSeleccionado.name = newName;
+                actualizarLista();
+                mostrarToast(`✏️ ${oldName} renombrado a ${newName}.`);
+                registrarAccion({ type: 'rename', objectId: objetoSeleccionado.uuid, oldName: oldName, newName: newName });
+            } else if (newName === oldName) {
+                mostrarToast("El nombre es el mismo.");
+            } else {
+                mostrarToast("El nombre no puede estar vacío.");
+            }
+            cancelarRenombrar();
+        }
+
+        function cancelarRenombrar() {
+            renameDialog.style.display = 'none';
+            renameInput.value = '';
+        }
+
+        // Alterna la visibilidad de un objeto
+        function toggleObjectVisibility(obj) {
+            if (!obj) {
+                mostrarToast("☝️ Selecciona una figura para ocultar/mostrar.");
+                return;
+            }
+            const oldVisible = obj.visible;
+            obj.visible = !obj.visible;
+            obj.userData.visible = obj.visible; // Actualizar userData para persistencia
+
+            // Si el objeto seleccionado es ocultado, deseleccionarlo y desvincular TransformControls
+            if (objetoSeleccionado === obj && !obj.visible) {
+                seleccionarFigura(null); // Deseleccionar si era el objeto activo
+                mostrarToast(`🙈 ${obj.name} oculto y deseleccionado.`);
+            } else if (objetoSeleccionado === obj && obj.visible) {
+                // Si el objeto seleccionado se vuelve visible, y TransformControls estaba desvinculado, vincularlo
+                // Esto ya se maneja en seleccionarFigura
+                mostrarToast(`👁️ ${obj.name} visible.`);
+            } else {
+                mostrarToast(obj.visible ? `👁️ ${obj.name} visible.` : `🙈 ${obj.name} oculto.`);
+            }
+            registrarAccion({ type: 'toggle_visibility', objectId: obj.uuid, oldState: oldVisible, newState: obj.visible });
+        }
+
+        // Nueva función para añadir/quitar luz de punto
+        function togglePointLight() {
+            const oldState = pointLight !== null;
+            let oldPosition = null;
+            if (pointLight) {
+                oldPosition = pointLight.position.toArray();
+                escena.remove(pointLight);
+                pointLight = null;
+                mostrarToast("💡 Luz de punto desactivada.");
+            } else {
+                pointLight = new THREE.PointLight(0xffffff, 1, 100); // Color, intensidad, distancia
+                pointLight.position.set(2, 3, 2); // Posición por defecto
+                escena.add(pointLight);
+                mostrarToast("💡 Luz de punto activada.");
+            }
+            document.getElementById('btnPointLight').classList.toggle('activo', pointLight !== null);
+            registrarAccion({ type: 'toggle_light', lightType: 'point', oldState: oldState, newState: pointLight !== null, position: pointLight ? pointLight.position.toArray() : oldPosition });
+        }
+
+        // Nueva función para añadir/quitar luz hemisférica
+        function toggleHemisphereLight() {
+            const oldState = hemisphereLight !== null;
+            if (hemisphereLight) {
+                escena.remove(hemisphereLight);
+                hemisphereLight = null;
+                mostrarToast("☀️ Luz hemisférica desactivada.");
+            } else {
+                hemisphereLight = new THREE.HemisphereLight(0xb1e1ff, 0xb97a20, 0.5); // Sky color, ground color, intensity
+                escena.add(hemisphereLight);
+                mostrarToast("☀️ Luz hemisférica activada.");
+            }
+            document.getElementById('btnHemisphereLight').classList.toggle('activo', hemisphereLight !== null);
+            registrarAccion({ type: 'toggle_light', lightType: 'hemisphere', oldState: oldState, newState: hemisphereLight !== null });
+        }
+
+        // Nueva función para añadir/quitar foco (SpotLight)
+        function toggleSpotLight() {
+            const oldState = spotLight !== null;
+            let oldPosition = null;
+            let oldTargetPosition = null;
+            if (spotLight) {
+                oldPosition = spotLight.position.toArray();
+                oldTargetPosition = spotLight.target.position.toArray();
+                escena.remove(spotLight);
+                escena.remove(spotLight.target);
+                spotLight = null;
+                mostrarToast("🔦 Foco desactivado.");
+            } else {
+                spotLight = new THREE.SpotLight(0xffffff, 1, 10, Math.PI * 0.1, 0.5, 2); // Color, intensity, distance, angle, penumbra, decay
+                spotLight.position.set(0, 5, 0);
+                spotLight.target.position.set(0, 0, 0);
+                escena.add(spotLight);
+                escena.add(spotLight.target); // Importante para que el target funcione
+                mostrarToast("🔦 Foco activado.");
+            }
+            document.getElementById('btnSpotLight').classList.toggle('activo', spotLight !== null);
+            registrarAccion({ type: 'toggle_light', lightType: 'spot', oldState: oldState, newState: spotLight !== null, position: spotLight ? spotLight.position.toArray() : oldPosition, targetPosition: spotLight ? spotLight.target.position.toArray() : oldTargetPosition });
+        }
+
+
+        // Nueva función para actualizar el panel de información del objeto
+        function updateObjectInfoPanel() {
+            if (objetoSeleccionado) {
+                infoPosX.textContent = objetoSeleccionado.position.x.toFixed(2);
+                infoPosY.textContent = objetoSeleccionado.position.y.toFixed(2);
+                infoPosZ.textContent = objetoSeleccionado.position.z.toFixed(2);
+
+                infoRotX.textContent = THREE.MathUtils.radToDeg(objetoSeleccionado.rotation.x).toFixed(2);
+                infoRotY.textContent = THREE.MathUtils.radToDeg(objetoSeleccionado.rotation.y).toFixed(2);
+                infoRotZ.textContent = THREE.MathUtils.radToDeg(objetoSeleccionado.rotation.z).toFixed(2);
+
+                infoScaleX.textContent = objetoSeleccionado.scale.x.toFixed(2);
+                infoScaleY.textContent = objetoSeleccionado.scale.y.toFixed(2);
+                infoScaleZ.textContent = objetoSeleccionado.scale.z.toFixed(2);
+
+                // Asegurarse de que el panel esté visible si se está actualizando
+                if (objectInfoBox.style.display === 'none') {
+                    // No mostrarlo automáticamente, solo actualizar si ya está abierto
+                    // Si el usuario lo abre, la función mostrarPanel('objectInfoBox') lo hará visible
+                }
+            } else {
+                // Si no hay objeto seleccionado, limpiar el panel
+                infoPosX.textContent = "N/A";
+                infoPosY.textContent = "N/A";
+                infoPosZ.textContent = "N/A";
+                infoRotX.textContent = "N/A";
+                infoRotY.textContent = "N/A";
+                infoRotZ.textContent = "N/A";
+                infoScaleX.textContent = "N/A";
+                infoScaleY.textContent = "N/A";
+                infoScaleZ.textContent = "N/A";
+            }
+        }
+
+        // Snapping functions
+        function toggleGridSnapping() {
+            gridSnappingEnabled = !gridSnappingEnabled;
+            document.getElementById('btnGridSnapping').classList.toggle('activo', gridSnappingEnabled);
+            mostrarToast(gridSnappingEnabled ? "📍 Snapping a rejilla activado." : "🚫 Snapping a rejilla desactivado.");
+            registrarAccion({ type: 'toggle_snapping', snapType: 'grid', newState: gridSnappingEnabled });
+        }
+
+        function applyGridSnapping(obj) {
+            if (!gridSnappingEnabled || !obj) return;
+            obj.position.x = Math.round(obj.position.x);
+            obj.position.y = Math.round(obj.position.y);
+            obj.position.z = Math.round(obj.position.z);
+            if (transformControls && transformControls.object === obj) {
+                transformControls.updateMatrixWorld();
+            }
+        }
+
+        function toggleObjectSnapping() {
+            objectSnappingEnabled = !objectSnappingEnabled;
+            document.getElementById('btnObjectSnapping').classList.toggle('activo', objectSnappingEnabled);
+            mostrarToast(objectSnappingEnabled ? "🔗 Snapping a objeto activado." : "🚫 Snapping a objeto desactivado.");
+            registrarAccion({ type: 'toggle_snapping', snapType: 'object', newState: objectSnappingEnabled });
+        }
+
+        function applyObjectSnapping(obj) {
+            if (!objectSnappingEnabled || !obj) return;
+            let closestDistance = Infinity;
+            let closestObject = null;
+
+            objetos.forEach(otherObj => {
+                if (otherObj !== obj && !otherObj.userData.isGroup) { // No snappear a sí mismo ni a grupos
+                    const distance = obj.position.distanceTo(otherObj.position);
+                    if (distance < closestDistance && distance < 2) { // Snapping threshold
+                        closestDistance = distance;
+                        closestObject = otherObj;
+                    }
+                }
+            });
+
+            if (closestObject) {
+                obj.position.copy(closestObject.position);
+                if (transformControls && transformControls.object === obj) {
+                    transformControls.updateMatrixWorld();
+                }
+                mostrarToast(`🔗 ${obj.name} snappeado a ${closestObject.name}.`);
+            }
+        }
+
+        // Measurement functions
+        function measureDistance() {
+            if (!objetoSeleccionado) {
+                mostrarToast("☝️ Selecciona el primer objeto para medir.");
+                isMeasuring = true;
+                firstMeasurePoint = null;
+                return;
+            }
+
+            if (!isMeasuring) {
+                mostrarToast("☝️ Selecciona el segundo objeto para medir la distancia.");
+                isMeasuring = true;
+                firstMeasurePoint = objetoSeleccionado.position.clone();
+                return;
+            }
+
+            if (isMeasuring && firstMeasurePoint && objetoSeleccionado) {
+                const distance = firstMeasurePoint.distanceTo(objetoSeleccionado.position);
+                mostrarToast(`📏 Distancia entre objetos: ${distance.toFixed(2)} unidades.`);
+                isMeasuring = false;
+                firstMeasurePoint = null;
+            }
+        }
+
+        // Grouping/Ungrouping
+        function groupSelectedObjects() {
+            // Get all currently selected objects (could be from multi-select or just the single selected one)
+            // For simplicity, let's assume `objetoSeleccionado` is the primary object,
+            // and for multi-selection, we'd need a more complex selection mechanism (e.g., holding Ctrl/Cmd).
+            // For this example, let's just group the currently selected object with a new dummy object if only one is selected,
+            // or if multiple are selected (not implemented here), group them.
+            // For now, let's just group the currently selected object with the next available object for demonstration.
+            // A more robust implementation would involve a multi-selection array.
+
+            // To simulate multi-selection for grouping, let's take the selected object and the first other object if available.
+            const objectsToGroup = [];
+            if (objetoSeleccionado) {
+                objectsToGroup.push(objetoSeleccionado);
+            }
+            
+            // Find another object to group with
+            const otherObjects = objetos.filter(obj => obj !== objetoSeleccionado && !obj.userData.isGroup);
+            if (otherObjects.length > 0) {
+                objectsToGroup.push(otherObjects[0]);
+            }
+
+            if (objectsToGroup.length < 2) {
+                mostrarToast("⚠️ Selecciona al menos dos figuras para agrupar. (Actualmente solo se agrupa el seleccionado con otro disponible).");
+                return;
+            }
+
+            const group = new THREE.Group();
+            group.name = `Grupo ${++contador.grupo}`;
+            group.userData.isGroup = true;
+            group.userData.initialPosition = group.position.clone();
+            group.userData.initialRotation = group.rotation.clone();
+            group.userData.initialScale = group.scale.clone();
+            group.userData.visible = true; // Groups also have visibility
+
+            const oldObjectUUIDs = [];
+            objectsToGroup.forEach(obj => {
+                oldObjectUUIDs.push(obj.uuid);
+                // Ensure the object is removed from its current parent (scene or another group)
+                if (obj.parent) {
+                    obj.parent.remove(obj);
+                }
+                group.add(obj);
+                // Remove from global objects array if they are not already part of a group
+                const index = objetos.indexOf(obj);
+                if (index > -1) objetos.splice(index, 1);
+            });
+
+            escena.add(group);
+            grupos.push(group);
+            actualizarLista();
+            seleccionarFigura(group);
+            mostrarToast(`📦 Grupo "${group.name}" creado.`);
+            registrarAccion({ type: 'group', groupId: group.uuid, oldObjectUUIDs: oldObjectUUIDs, groupData: serializarObjeto(group) });
+        }
+
+        function ungroupSelectedObject() {
+            if (!objetoSeleccionado || !objetoSeleccionado.userData.isGroup) {
+                mostrarToast("☝️ Selecciona un grupo para desagrupar.");
+                return;
+            }
+
+            const group = objetoSeleccionado;
+            const oldGroupData = serializarObjeto(group);
+            const childUUIDs = group.children.map(c => c.uuid); // Get UUIDs of children before they are moved
+
+            // Move children back to the scene
+            // Iterate backwards to avoid issues with array modification during loop
+            for (let i = group.children.length - 1; i >= 0; i--) {
+                const child = group.children[i];
+                escena.attach(child); // Attach to scene
+                objetos.push(child); // Add back to global objects array
+            }
+
+            escena.remove(group);
+            const index = grupos.indexOf(group);
+            if (index > -1) grupos.splice(index, 1);
+
+            seleccionarFigura(null); // Deselect the group
+            actualizarLista();
+            mostrarToast(`🔓 Grupo "${group.name}" desagrupado.`);
+            registrarAccion({ type: 'ungroup', oldGroupData: oldGroupData, childUUIDs: childUUIDs });
+        }
+
+        // Visibility management
+        function hideAllObjects() {
+            const oldVisibilities = [];
+            [...objetos, ...grupos].forEach(obj => {
+                if (obj.visible) {
+                    oldVisibilities.push({ uuid: obj.uuid, visible: true });
+                    obj.visible = false;
+                    obj.userData.visible = false;
+                }
+            });
+            seleccionarFigura(null);
+            mostrarToast("🙈 Todas las figuras ocultas.");
+            registrarAccion({ type: 'batch_visibility', changes: oldVisibilities, newState: false });
+        }
+
+        function showAllObjects() {
+            const oldVisibilities = [];
+            [...objetos, ...grupos].forEach(obj => {
+                if (!obj.visible) {
+                    oldVisibilities.push({ uuid: obj.uuid, visible: false });
+                    obj.visible = true;
+                    obj.userData.visible = true;
+                }
+            });
+            mostrarToast("👁️ Todas las figuras visibles.");
+            registrarAccion({ type: 'batch_visibility', changes: oldVisibilities, newState: true });
+        }
+
+        function isolateSelectedObject() {
+            if (!objetoSeleccionado) {
+                mostrarToast("☝️ Selecciona una figura para aislar.");
+                return;
+            }
+            const oldVisibilities = [];
+            [...objetos, ...grupos].forEach(obj => {
+                if (obj.uuid !== objetoSeleccionado.uuid && obj.visible) {
+                    oldVisibilities.push({ uuid: obj.uuid, visible: true });
+                    obj.visible = false;
+                    obj.userData.visible = false;
+                } else if (obj.uuid === objetoSeleccionado.uuid && !obj.visible) {
+                    oldVisibilities.push({ uuid: obj.uuid, visible: false });
+                    obj.visible = true;
+                    obj.userData.visible = true;
+                }
+            });
+            mostrarToast(`🔬 ${objetoSeleccionado.name} aislado.`);
+            registrarAccion({ type: 'isolate', objectId: objetoSeleccionado.uuid, changes: oldVisibilities });
+        }
+
+        // Object Alignment
+        function alignObjectToAxis(axis) {
+            if (!objetoSeleccionado) {
+                mostrarToast("☝️ Selecciona una figura para alinear.");
+                return;
+            }
+            const oldRotation = objetoSeleccionado.rotation.clone();
+            const oldPosition = objetoSeleccionado.position.clone();
+
+            // Reset rotation to 0 for the given axis
+            const newRotation = objetoSeleccionado.rotation.clone();
+            if (axis === 'x') {
+                newRotation.x = 0;
+            } else if (axis === 'y') {
+                newRotation.y = 0;
+            } else if (axis === 'z') {
+                newRotation.z = 0;
+            }
+            objetoSeleccionado.rotation.copy(newRotation);
+
+            // Align position to 0 for the given axis
+            const newPosition = objetoSeleccionado.position.clone();
+            newPosition[axis] = 0;
+            objetoSeleccionado.position.copy(newPosition);
+            
+            if (transformControls) transformControls.updateMatrixWorld();
+            mostrarToast(`📏 ${objetoSeleccionado.name} alineado al eje ${axis.toUpperCase()}.`);
+            registrarAccion({ type: 'transform', objectId: objetoSeleccionado.uuid, oldState: { position: oldPosition, rotation: oldRotation, scale: objetoSeleccionado.scale.clone() }, newState: { position: objetoSeleccionado.position.clone(), rotation: objetoSeleccionado.rotation.clone(), scale: objetoSeleccionado.scale.clone() } });
+            updateObjectInfoPanel();
+        }
+
+        let alignSource = null;
+        function alignSelectedToObject() {
+            if (!objetoSeleccionado) {
+                mostrarToast("☝️ Selecciona el objeto fuente para alinear.");
+                alignSource = null;
+                return;
+            }
+            if (!alignSource) {
+                alignSource = objetoSeleccionado;
+                mostrarToast(`Seleccionado ${alignSource.name} como fuente. Ahora selecciona el objeto destino.`);
+                return;
+            }
+
+            if (alignSource === objetoSeleccionado) {
+                mostrarToast("⚠️ No puedes alinear un objeto a sí mismo. Selecciona otro objeto.");
+                return;
+            }
+
+            const oldState = {
+                position: objetoSeleccionado.position.clone(),
+                rotation: objetoSeleccionado.rotation.clone(),
+                scale: objetoSeleccionado.scale.clone()
+            };
+
+            objetoSeleccionado.position.copy(alignSource.position);
+            objetoSeleccionado.rotation.copy(alignSource.rotation);
+            // objetoSeleccionado.scale.copy(alignSource.scale); // Escala no siempre deseada al alinear
+
+            if (transformControls) transformControls.updateMatrixWorld();
+            mostrarToast(`↔️ ${objetoSeleccionado.name} alineado a ${alignSource.name}.`);
+            registrarAccion({ type: 'transform', objectId: objetoSeleccionado.uuid, oldState: oldState, newState: { position: objetoSeleccionado.position.clone(), rotation: objetoSeleccionado.rotation.clone(), scale: objetoSeleccionado.scale.clone() } });
+            updateObjectInfoPanel();
+            alignSource = null; // Reset
+        }
+
+        // Material Presets
+        function applyMaterialPreset() {
+            if (!objetoSeleccionado || !objetoSeleccionado.material || objetoSeleccionado.userData.isGroup) {
+                mostrarToast("☝️ Selecciona una figura (no un grupo) para aplicar un preajuste de material.");
+                materialPresetSelect.value = 'default';
+                return;
+            }
+            const preset = materialPresetSelect.value;
+            const oldMaterialData = {
+                color: objetoSeleccionado.material.color.getHex(),
+                roughness: objetoSeleccionado.material.isMeshStandardMaterial || objetoSeleccionado.material.isMeshPhysicalMaterial ? objetoSeleccionado.material.roughness : undefined,
+                metalness: objetoSeleccionado.material.isMeshStandardMaterial || objetoSeleccionado.material.isMeshPhysicalMaterial ? objetoSeleccionado.material.metalness : undefined,
+                opacity: objetoSeleccionado.material.opacity,
+                transparent: objetoSeleccionado.material.transparent,
+                materialPreset: objetoSeleccionado.userData.materialPreset
+            };
+
+            let newMaterial;
+            switch (preset) {
+                case 'default':
+                    newMaterial = new THREE.MeshStandardMaterial({
+                        color: oldMaterialData.color, // Keep current color
+                        roughness: 0.5,
+                        metalness: 0.0,
+                        transparent: false,
+                        opacity: 1.0
+                    });
+                    break;
+                case 'shinyPlastic':
+                    newMaterial = new THREE.MeshStandardMaterial({
+                        color: oldMaterialData.color,
+                        roughness: 0.1,
+                        metalness: 0.1,
+                        transparent: false,
+                        opacity: 1.0
+                    });
+                    break;
+                case 'matte':
+                    newMaterial = new THREE.MeshStandardMaterial({
+                        color: oldMaterialData.color,
+                        roughness: 0.9,
+                        metalness: 0.0,
+                        transparent: false,
+                        opacity: 1.0
+                    });
+                    break;
+                case 'metal':
+                    newMaterial = new THREE.MeshStandardMaterial({
+                        color: oldMaterialData.color,
+                        roughness: 0.2,
+                        metalness: 0.9,
+                        transparent: false,
+                        opacity: 1.0
+                    });
+                    break;
+                case 'glass':
+                    newMaterial = new THREE.MeshPhysicalMaterial({ // Usar MeshPhysicalMaterial para vidrio
+                        color: oldMaterialData.color,
+                        roughness: 0.1,
+                        metalness: 0.0,
+                        transparent: true,
+                        opacity: 0.2,
+                        transmission: 0.9, // Para vidrio
+                        clearcoat: 1.0,
+                        clearcoatRoughness: 0.1
+                    });
+                    break;
+                default:
+                    return;
+            }
+
+            objetoSeleccionado.material = newMaterial;
+            objetoSeleccionado.userData.materialPreset = preset;
+            // Actualizar los sliders del panel de materiales
+            seleccionarFigura(objetoSeleccionado); // Esto forzará la actualización de los sliders
+            mostrarToast(`🌈 Preajuste "${preset}" aplicado a ${objetoSeleccionado.name}.`);
+            
+            const newMaterialData = {
+                color: objetoSeleccionado.material.color.getHex(),
+                roughness: objetoSeleccionado.material.isMeshStandardMaterial || objetoSeleccionado.material.isMeshPhysicalMaterial ? objetoSeleccionado.material.roughness : undefined,
+                metalness: objetoSeleccionado.material.isMeshStandardMaterial || objetoSeleccionado.material.isMeshPhysicalMaterial ? objetoSeleccionado.material.metalness : undefined,
+                opacity: objetoSeleccionado.material.opacity,
+                transparent: objetoSeleccionado.material.transparent,
+                materialPreset: objetoSeleccionado.userData.materialPreset
+            };
+            registrarAccion({ type: 'material_preset', objectId: objetoSeleccionado.uuid, oldMaterialData: oldMaterialData, newMaterialData: newMaterialData });
+        }
+
+
+        function registrarAccion(accion) {
+            if (indiceHistorial < historial.length - 1) {
+                historial.splice(indiceHistorial + 1);
+            }
+            historial.push(accion);
+            if (historial.length > MAX_HISTORIAL) {
+                historial.shift();
+            }
+            indiceHistorial = historial.length - 1;
+            actualizarBotonesUndoRedo();
+        }
+
+        function deshacerAccion() {
+            if (indiceHistorial < 0) {
+                mostrarToast("🤷‍♀️ No hay acciones para deshacer.");
+                return;
+            }
+
+            const accion = historial[indiceHistorial];
+            let obj = null;
+            if (accion.objectId) {
+                obj = escena.getObjectByProperty('uuid', accion.objectId);
+            }
+
+            switch (accion.type) {
+                case 'add':
+                    if (obj) {
+                        if (obj.userData.isGroup) {
+                            grupos.splice(grupos.indexOf(obj), 1);
+                            // Re-add children to global objects array if they were part of this group
+                            obj.children.forEach(child => {
+                                // Ensure child is not already in objects array (e.g., if it was grouped multiple times)
+                                if (!objetos.includes(child)) {
+                                    objetos.push(child);
+                                }
+                            });
+                        } else {
+                            objetos.splice(objetos.indexOf(obj), 1);
+                        }
+                        escena.remove(obj);
+                        if (objetoSeleccionado === obj) {
+                            seleccionarFigura(null);
+                        }
+                        if (obj.userData.tipo && contador[obj.userData.tipo] > 0) {
+                            contador[obj.userData.tipo]--;
+                        } else if (obj.userData.isGroup && contador.grupo > 0) {
+                             contador.grupo--;
+                        }
+                        actualizarLista();
+                        mostrarToast(`↩ Deshecho: Añadir ${obj.name}`);
+                    }
+                    break;
+                case 'delete':
+                    if (accion.objectData) {
+                        const newObj = deserializarObjeto(accion.objectData);
+                        escena.add(newObj);
+                        if (newObj.userData.isGroup) {
+                            grupos.push(newObj);
+                            // Add children to global objects array
+                            newObj.children.forEach(child => objetos.push(child));
+                        } else {
+                            objetos.push(newObj);
+                        }
+                        if (newObj.userData.tipo) {
+                            contador[newObj.userData.tipo]++;
+                        } else if (newObj.userData.isGroup) {
+                            contador.grupo++;
+                        }
+                        actualizarLista();
+                        seleccionarFigura(newObj);
+                        mostrarToast(`↩ Deshecho: Eliminar ${newObj.name}`);
+                    }
+                    break;
+                case 'transform':
+                    if (obj && accion.oldState) {
+                        obj.position.copy(accion.oldState.position);
+                        obj.rotation.copy(accion.oldState.rotation);
+                        obj.scale.copy(accion.oldState.scale);
+                        if (objetoSeleccionado === obj && transformControls) {
+                            transformControls.updateMatrixWorld();
+                        }
+                        mostrarToast(`↩ Deshecho: Mover ${obj.name}`);
+                        updateObjectInfoPanel();
+                    }
+                    break;
+                case 'color':
+                    if (obj && accion.oldColor !== undefined) {
+                        obj.material.color.set(accion.oldColor);
+                        if (objetoSeleccionado === obj) {
+                            colorPicker.value = "#" + obj.material.color.getHexString();
+                            materialColorPicker.value = "#" + obj.material.color.getHexString();
+                        }
+                        mostrarToast(`↩ Deshecho: Color ${obj.name}`);
+                    }
+                    break;
+                case 'background_color':
+                    if (accion.oldColor !== undefined) {
+                        escena.background = new THREE.Color(accion.oldColor);
+                        backgroundColorPicker.value = "#" + new THREE.Color(accion.oldColor).getHexString();
+                        mostrarToast(`↩ Deshecho: Color de fondo`);
+                    }
+                    break;
+                case 'rename':
+                    if (obj && accion.oldName !== undefined) {
+                        obj.name = accion.oldName;
+                        actualizarLista();
+                        mostrarToast(`↩ Deshecho: Renombrar ${accion.newName} a ${accion.oldName}`);
+                    }
+                    break;
+                case 'toggle_grid':
+                    gridVisible = accion.oldState;
+                    gridHelper.visible = gridVisible;
+                    document.getElementById('btnGrid').classList.toggle('activo', gridVisible);
+                    mostrarToast(gridVisible ? "↩ Deshecho: Rejilla visible" : "↩ Deshecho: Rejilla oculta");
+                    break;
+                case 'camera_projection':
+                    isPerspectiveCamera = (accion.oldType === 'perspective');
+                    ajustarCanvasSize();
+                    if (controls) {
+                        controls.update();
+                    }
+                    document.getElementById('btnProjection').classList.toggle('activo', !isPerspectiveCamera); // Orthographic is 'activo'
+                    mostrarToast(`↩ Deshecho: Proyección ${accion.newType} a ${accion.oldType}`);
+                    break;
+                case 'toggle_visibility':
+                    if (obj && accion.oldState !== undefined) {
+                        obj.visible = accion.oldState;
+                        obj.userData.visible = accion.oldState;
+                        if (objetoSeleccionado === null && obj.visible && transformControls) {
+                            seleccionarFigura(obj);
+                        } else if (objetoSeleccionado === obj && !obj.visible) {
+                            seleccionarFigura(null);
+                        }
+                        mostrarToast(`↩ Deshecho: Visibilidad de ${obj.name}`);
+                    }
+                    break;
+                case 'material_roughness':
+                    if (obj && obj.material && (obj.material.isMeshStandardMaterial || obj.material.isMeshPhysicalMaterial) && accion.oldValue !== undefined) {
+                        obj.material.roughness = accion.oldValue;
+                        if (objetoSeleccionado === obj) {
+                            roughnessSlider.value = obj.material.roughness;
+                            roughnessLabel.textContent = obj.material.roughness.toFixed(2);
+                            materialRoughnessSlider.value = obj.material.roughness;
+                            materialRoughnessLabel.textContent = obj.material.roughness.toFixed(2);
+                        }
+                        mostrarToast(`↩ Deshecho: Rugosidad de ${obj.name}`);
+                    }
+                    break;
+                case 'material_metalness':
+                    if (obj && obj.material && (obj.material.isMeshStandardMaterial || obj.material.isMeshPhysicalMaterial) && accion.oldValue !== undefined) {
+                        obj.material.metalness = accion.oldValue;
+                        if (objetoSeleccionado === obj) {
+                            metalnessSlider.value = obj.material.metalness;
+                            metalnessLabel.textContent = obj.material.metalness.toFixed(2);
+                            materialMetalnessSlider.value = obj.material.metalness;
+                            materialMetalnessLabel.textContent = obj.material.metalness.toFixed(2);
+                        }
+                        mostrarToast(`↩ Deshecho: Metalicidad de ${obj.name}`);
+                    }
+                    break;
+                case 'material_opacity':
+                    if (obj && obj.material && accion.oldValue !== undefined) {
+                        obj.material.opacity = accion.oldValue;
+                        obj.material.transparent = obj.material.opacity < 1.0;
+                        if (objetoSeleccionado === obj) {
+                            materialOpacitySlider.value = obj.material.opacity;
+                            materialOpacityLabel.textContent = obj.material.opacity.toFixed(2);
+                        }
+                        mostrarToast(`↩ Deshecho: Opacidad de ${obj.name}`);
+                    }
+                    break;
+                case 'toggle_light':
+                    if (accion.lightType === 'point') {
+                        if (accion.oldState === true && !pointLight) { // If it was on, turn it on
+                            pointLight = new THREE.PointLight(0xffffff, 1, 100);
+                            pointLight.position.fromArray(accion.position);
+                            escena.add(pointLight);
+                        } else if (accion.oldState === false && pointLight) { // If it was off, turn it off
+                            escena.remove(pointLight);
+                            pointLight = null;
+                        }
+                        document.getElementById('btnPointLight').classList.toggle('activo', pointLight !== null);
+                        mostrarToast(`↩ Deshecho: Luz de punto ${accion.oldState ? 'activada' : 'desactivada'}.`);
+                    } else if (accion.lightType === 'hemisphere') {
+                        if (accion.oldState === true && !hemisphereLight) {
+                            hemisphereLight = new THREE.HemisphereLight(0xb1e1ff, 0xb97a20, 0.5);
+                            escena.add(hemisphereLight);
+                        } else if (accion.oldState === false && hemisphereLight) {
+                            escena.remove(hemisphereLight);
+                            hemisphereLight = null;
+                        }
+                        document.getElementById('btnHemisphereLight').classList.toggle('activo', hemisphereLight !== null);
+                        mostrarToast(`↩ Deshecho: Luz hemisférica ${accion.oldState ? 'activada' : 'desactivada'}.`);
+                    } else if (accion.lightType === 'spot') {
+                        if (accion.oldState === true && !spotLight) {
+                            spotLight = new THREE.SpotLight(0xffffff, 1, 10, Math.PI * 0.1, 0.5, 2);
+                            spotLight.position.fromArray(accion.position);
+                            spotLight.target.position.fromArray(accion.targetPosition);
+                            escena.add(spotLight);
+                            escena.add(spotLight.target);
+                        } else if (accion.oldState === false && spotLight) {
+                            escena.remove(spotLight);
+                            escena.remove(spotLight.target);
+                            spotLight = null;
+                        }
+                        document.getElementById('btnSpotLight').classList.toggle('activo', spotLight !== null);
+                        mostrarToast(`↩ Deshecho: Foco ${accion.oldState ? 'activado' : 'desactivado'}.`);
+                    }
+                    break;
+                case 'light_intensity':
+                    if (accion.lightType === 'ambient') {
+                        ambientLight.intensity = accion.oldValue;
+                        ambientLightIntensitySlider.value = ambientLight.intensity;
+                        ambientLightIntensityLabel.textContent = ambientLight.intensity.toFixed(2);
+                    } else if (accion.lightType === 'directional') {
+                        directionalLight.intensity = accion.oldValue;
+                        directionalLightIntensitySlider.value = directionalLight.intensity;
+                        directionalLightIntensityLabel.textContent = directionalLight.intensity.toFixed(2);
+                    }
+                    mostrarToast(`↩ Deshecho: Intensidad de luz ${accion.lightType}.`);
+                    break;
+                case 'toggle_snapping':
+                    if (accion.snapType === 'grid') {
+                        gridSnappingEnabled = accion.oldState; // Revertir al estado anterior
+                        document.getElementById('btnGridSnapping').classList.toggle('activo', gridSnappingEnabled);
+                        mostrarToast(`↩ Deshecho: Snapping a rejilla ${gridSnappingEnabled ? 'activado' : 'desactivado'}.`);
+                    } else if (accion.snapType === 'object') {
+                        objectSnappingEnabled = accion.oldState; // Revertir al estado anterior
+                        document.getElementById('btnObjectSnapping').classList.toggle('activo', objectSnappingEnabled);
+                        mostrarToast(`↩ Deshecho: Snapping a objeto ${objectSnappingEnabled ? 'activado' : 'desactivado'}.`);
+                    }
+                    break;
+                case 'group':
+                    if (obj && obj.userData.isGroup) {
+                        // Ungroup the object
+                        for (let i = obj.children.length - 1; i >= 0; i--) {
+                            const child = obj.children[i];
+                            escena.attach(child);
+                            objetos.push(child); // Re-add children to global objects array
+                        }
+                        escena.remove(obj);
+                        grupos.splice(grupos.indexOf(obj), 1);
+                        seleccionarFigura(null);
+                        contador.grupo--;
+                        actualizarLista();
+                        mostrarToast(`↩ Deshecho: Agrupar "${obj.name}".`);
+                    }
+                    break;
+                case 'ungroup':
+                    if (accion.oldGroupData) {
+                        const newGroup = deserializarObjeto(accion.oldGroupData);
+                        escena.add(newGroup);
+                        grupos.push(newGroup);
+                        // Remove children from global objects array as they are now in a group
+                        newGroup.children.forEach(child => {
+                            const idx = objetos.indexOf(child);
+                            if (idx > -1) objetos.splice(idx, 1);
+                        });
+                        seleccionarFigura(newGroup);
+                        contador.grupo++;
+                        actualizarLista();
+                        mostrarToast(`↩ Deshecho: Desagrupar "${newGroup.name}".`);
+                    }
+                    break;
+                case 'batch_visibility':
+                    accion.changes.forEach(change => {
+                        const targetObj = escena.getObjectByProperty('uuid', change.uuid);
+                        if (targetObj) {
+                            targetObj.visible = change.visible;
+                            targetObj.userData.visible = change.visible;
+                        }
+                    });
+                    seleccionarFigura(null); // Deseleccionar por si el objeto seleccionado fue afectado
+                    mostrarToast(`↩ Deshecho: Visibilidad masiva.`);
+                    break;
+                case 'isolate':
+                    accion.changes.forEach(change => {
+                        const targetObj = escena.getObjectByProperty('uuid', change.uuid);
+                        if (targetObj) {
+                            targetObj.visible = change.visible;
+                            targetObj.userData.visible = change.visible;
+                        }
+                    });
+                    const isolatedObj = escena.getObjectByProperty('uuid', accion.objectId);
+                    if (isolatedObj) {
+                        isolatedObj.visible = !isolatedObj.visible; // Revertir la visibilidad del objeto aislado
+                        isolatedObj.userData.visible = !isolatedObj.userData.visible;
+                        seleccionarFigura(isolatedObj);
+                    }
+                    mostrarToast(`↩ Deshecho: Aislar.`);
+                    break;
+                case 'camera_view':
+                    camara.position.fromArray(accion.oldPosition);
+                    controls.target.fromArray(accion.oldTarget);
+                    controls.update();
+                    mostrarToast(`↩ Deshecho: Cambio de vista de cámara.`);
+                    break;
+                case 'material_preset':
+                    if (obj && accion.oldMaterialData) {
+                        const oldMatData = accion.oldMaterialData;
+                        let oldMaterial;
+                        if (oldMatData.materialPreset === 'glass') { // Handle MeshPhysicalMaterial
+                            oldMaterial = new THREE.MeshPhysicalMaterial({
+                                color: oldMatData.color,
+                                roughness: oldMatData.roughness,
+                                metalness: oldMatData.metalness,
+                                opacity: oldMatData.opacity,
+                                transparent: oldMatData.transparent,
+                                transmission: 0.9, // Assuming default for glass
+                                clearcoat: 1.0,
+                                clearcoatRoughness: 0.1
+                            });
+                        } else {
+                            oldMaterial = new THREE.MeshStandardMaterial({
+                                color: oldMatData.color,
+                                roughness: oldMatData.roughness,
+                                metalness: oldMatData.metalness,
+                                opacity: oldMatData.opacity,
+                                transparent: oldMatData.transparent
+                            });
+                        }
+                        obj.material = oldMaterial;
+                        obj.userData.materialPreset = oldMatData.materialPreset;
+                        seleccionarFigura(obj); // Update UI sliders
+                        mostrarToast(`↩ Deshecho: Preajuste de material de ${obj.name}.`);
+                    }
+                    break;
+            }
+            indiceHistorial--;
+            actualizarBotonesUndoRedo();
+        }
+
+        function rehacerAccion() {
+            if (indiceHistorial >= historial.length - 1) {
+                mostrarToast("🤷‍♀️ No hay acciones para rehacer.");
+                return;
+            }
+            indiceHistorial++;
+            const accion = historial[indiceHistorial];
+            let obj = null;
+            if (accion.objectId) {
+                obj = escena.getObjectByProperty('uuid', accion.objectId);
+            }
+
+            switch (accion.type) {
+                case 'add':
+                    if (accion.objectData) {
+                        const newObj = deserializarObjeto(accion.objectData);
+                        escena.add(newObj);
+                        if (newObj.userData.isGroup) {
+                            grupos.push(newObj);
+                            newObj.children.forEach(child => objetos.push(child));
+                        } else {
+                            objetos.push(newObj);
+                        }
+                        if (newObj.userData.tipo) {
+                            contador[newObj.userData.tipo]++;
+                        } else if (newObj.userData.isGroup) {
+                            contador.grupo++;
+                        }
+                        actualizarLista();
+                        seleccionarFigura(newObj);
+                        mostrarToast(`↪ Rehaciendo: Añadir ${newObj.name}`);
+                    }
+                    break;
+                case 'delete':
+                    if (obj) {
+                        if (obj.userData.isGroup) {
+                            grupos.splice(grupos.indexOf(obj), 1);
+                            obj.children.forEach(child => {
+                                const idx = objetos.indexOf(child);
+                                if (idx > -1) objetos.splice(idx, 1);
+                            });
+                        } else {
+                            objetos.splice(objetos.indexOf(obj), 1);
+                        }
+                        escena.remove(obj);
+                        if (objetoSeleccionado === obj) {
+                            seleccionarFigura(null);
+                        }
+                        if (obj.userData.tipo && contador[obj.userData.tipo] > 0) {
+                            contador[obj.userData.tipo]--;
+                        } else if (obj.userData.isGroup && contador.grupo > 0) {
+                            contador.grupo--;
+                        }
+                        actualizarLista();
+                        mostrarToast(`↪ Rehaciendo: Eliminar ${obj.name}`);
+                    }
+                    break;
+                case 'transform':
+                    if (obj && accion.newState) {
+                        obj.position.copy(accion.newState.position);
+                        obj.rotation.copy(accion.newState.rotation);
+                        obj.scale.copy(accion.newState.scale);
+                        if (objetoSeleccionado === obj && transformControls) {
+                            transformControls.updateMatrixWorld();
+                        }
+                        mostrarToast(`↪ Rehaciendo: Mover ${obj.name}`);
+                        updateObjectInfoPanel();
+                    }
+                    break;
+                case 'color':
+                    if (obj && accion.newColor !== undefined) {
+                        obj.material.color.set(accion.newColor);
+                        if (objetoSeleccionado === obj) {
+                            colorPicker.value = "#" + obj.material.color.getHexString();
+                            materialColorPicker.value = "#" + obj.material.color.getHexString();
+                        }
+                        mostrarToast(`↪ Rehaciendo: Color ${obj.name}`);
+                    }
+                    break;
+                case 'background_color':
+                    if (accion.newColor !== undefined) {
+                        escena.background = new THREE.Color(accion.newColor);
+                        backgroundColorPicker.value = "#" + new THREE.Color(accion.newColor).getHexString();
+                        mostrarToast(`↪ Rehaciendo: Color de fondo`);
+                    }
+                    break;
+                case 'rename':
+                    if (obj && accion.newName !== undefined) {
+                        obj.name = accion.newName;
+                        actualizarLista();
+                        mostrarToast(`↪ Rehaciendo: Renombrar ${accion.oldName} a ${accion.newName}`);
+                    }
+                    break;
+                case 'toggle_grid':
+                    gridVisible = accion.newState;
+                    gridHelper.visible = gridVisible;
+                    document.getElementById('btnGrid').classList.toggle('activo', gridVisible);
+                    mostrarToast(gridVisible ? "↪ Rehaciendo: Rejilla visible" : "↪ Rehaciendo: Rejilla oculta");
+                    break;
+                case 'camera_projection':
+                    isPerspectiveCamera = (accion.newType === 'perspective');
+                    ajustarCanvasSize();
+                    if (controls) {
+                        controls.update();
+                    }
+                    document.getElementById('btnProjection').classList.toggle('activo', !isPerspectiveCamera);
+                    mostrarToast(`↪ Rehaciendo: Proyección ${accion.oldType} a ${accion.newType}`);
+                    break;
+                case 'toggle_visibility':
+                    if (obj && accion.newState !== undefined) {
+                        obj.visible = accion.newState;
+                        obj.userData.visible = accion.newState;
+                        if (objetoSeleccionado === obj && !obj.visible) {
+                            seleccionarFigura(null);
+                        } else if (objetoSeleccionado === null && obj.visible && transformControls) {
+                            seleccionarFigura(obj);
+                        }
+                        mostrarToast(`↪ Rehaciendo: Visibilidad de ${obj.name}`);
+                    }
+                    break;
+                case 'material_roughness':
+                    if (obj && obj.material && (obj.material.isMeshStandardMaterial || obj.material.isMeshPhysicalMaterial) && accion.newValue !== undefined) {
+                        obj.material.roughness = accion.newValue;
+                        if (objetoSeleccionado === obj) {
+                            roughnessSlider.value = obj.material.roughness;
+                            roughnessLabel.textContent = obj.material.roughness.toFixed(2);
+                            materialRoughnessSlider.value = obj.material.roughness;
+                            materialRoughnessLabel.textContent = obj.material.roughness.toFixed(2);
+                        }
+                        mostrarToast(`↪ Rehaciendo: Rugosidad de ${obj.name}`);
+                    }
+                    break;
+                case 'material_metalness':
+                    if (obj && obj.material && (obj.material.isMeshStandardMaterial || obj.material.isMeshPhysicalMaterial) && accion.newValue !== undefined) {
+                        obj.material.metalness = accion.newValue;
+                        if (objetoSeleccionado === obj) {
+                            metalnessSlider.value = obj.material.metalness;
+                            metalnessLabel.textContent = obj.material.metalness.toFixed(2);
+                            materialMetalnessSlider.value = obj.material.metalness;
+                            materialMetalnessLabel.textContent = obj.material.metalness.toFixed(2);
+                        }
+                        mostrarToast(`↪ Rehaciendo: Metalicidad de ${obj.name}`);
+                    }
+                    break;
+                case 'material_opacity':
+                    if (obj && obj.material && accion.newValue !== undefined) {
+                        obj.material.opacity = accion.newValue;
+                        obj.material.transparent = obj.material.opacity < 1.0;
+                        if (objetoSeleccionado === obj) {
+                            materialOpacitySlider.value = obj.material.opacity;
+                            materialOpacityLabel.textContent = obj.material.opacity.toFixed(2);
+                        }
+                        mostrarToast(`↪ Rehaciendo: Opacidad de ${obj.name}`);
+                    }
+                    break;
+                case 'toggle_light':
+                    if (accion.lightType === 'point') {
+                        if (accion.newState === true && !pointLight) {
+                            pointLight = new THREE.PointLight(0xffffff, 1, 100);
+                            pointLight.position.fromArray(accion.position);
+                            escena.add(pointLight);
+                        } else if (accion.newState === false && pointLight) {
+                            escena.remove(pointLight);
+                            pointLight = null;
+                        }
+                        document.getElementById('btnPointLight').classList.toggle('activo', pointLight !== null);
+                        mostrarToast(`↪ Rehaciendo: Luz de punto ${accion.newState ? 'activada' : 'desactivada'}.`);
+                    } else if (accion.lightType === 'hemisphere') {
+                        if (accion.newState === true && !hemisphereLight) {
+                            hemisphereLight = new THREE.HemisphereLight(0xb1e1ff, 0xb97a20, 0.5);
+                            escena.add(hemisphereLight);
+                        } else if (accion.newState === false && hemisphereLight) {
+                            escena.remove(hemisphereLight);
+                            hemisphereLight = null;
+                        }
+                        document.getElementById('btnHemisphereLight').classList.toggle('activo', hemisphereLight !== null);
+                        mostrarToast(`↪ Rehaciendo: Luz hemisférica ${accion.newState ? 'activada' : 'desactivada'}.`);
+                    } else if (accion.lightType === 'spot') {
+                        if (accion.newState === true && !spotLight) {
+                            spotLight = new THREE.SpotLight(0xffffff, 1, 10, Math.PI * 0.1, 0.5, 2);
+                            spotLight.position.fromArray(accion.position);
+                            spotLight.target.position.fromArray(accion.targetPosition);
+                            escena.add(spotLight);
+                            escena.add(spotLight.target);
+                        } else if (accion.newState === false && spotLight) {
+                            escena.remove(spotLight);
+                            escena.remove(spotLight.target);
+                            spotLight = null;
+                        }
+                        document.getElementById('btnSpotLight').classList.toggle('activo', spotLight !== null);
+                        mostrarToast(`↪ Rehaciendo: Foco ${accion.newState ? 'activado' : 'desactivado'}.`);
+                    }
+                    break;
+                case 'light_intensity':
+                    if (accion.lightType === 'ambient') {
+                        ambientLight.intensity = accion.newValue;
+                        ambientLightIntensitySlider.value = ambientLight.intensity;
+                        ambientLightIntensityLabel.textContent = ambientLight.intensity.toFixed(2);
+                    } else if (accion.lightType === 'directional') {
+                        directionalLight.intensity = accion.newValue;
+                        directionalLightIntensitySlider.value = directionalLight.intensity;
+                        directionalLightIntensityLabel.textContent = directionalLight.intensity.toFixed(2);
+                    }
+                    mostrarToast(`↪ Rehaciendo: Intensidad de luz ${accion.lightType}.`);
+                    break;
+                case 'toggle_snapping':
+                    if (accion.snapType === 'grid') {
+                        gridSnappingEnabled = accion.newState;
+                        document.getElementById('btnGridSnapping').classList.toggle('activo', gridSnappingEnabled);
+                        mostrarToast(`↪ Rehaciendo: Snapping a rejilla ${gridSnappingEnabled ? 'activado' : 'desactivado'}.`);
+                    } else if (accion.snapType === 'object') {
+                        objectSnappingEnabled = accion.newState;
+                        document.getElementById('btnObjectSnapping').classList.toggle('activo', objectSnappingEnabled);
+                        mostrarToast(`↪ Rehaciendo: Snapping a objeto ${objectSnappingEnabled ? 'activado' : 'desactivado'}.`);
+                    }
+                    break;
+                case 'group':
+                    if (accion.groupData) {
+                        const newGroup = deserializarObjeto(accion.groupData);
+                        escena.add(newGroup);
+                        grupos.push(newGroup);
+                        // Remove children from global objects array as they are now in a group
+                        newGroup.children.forEach(child => {
+                            const idx = objetos.indexOf(child);
+                            if (idx > -1) objetos.splice(idx, 1);
+                        });
+                        seleccionarFigura(newGroup);
+                        contador.grupo++;
+                        actualizarLista();
+                        mostrarToast(`↪ Rehaciendo: Agrupar "${newGroup.name}".`);
+                    }
+                    break;
+                case 'ungroup':
+                    if (accion.oldGroupData) {
+                        const groupToUngroup = escena.getObjectByProperty('uuid', accion.oldGroupData.uuid);
+                        if (groupToUngroup) {
+                            for (let i = groupToUngroup.children.length - 1; i >= 0; i--) {
+                                const child = groupToUngroup.children[i];
+                                escena.attach(child);
+                                objetos.push(child);
+                            }
+                            escena.remove(groupToUngroup);
+                            grupos.splice(grupos.indexOf(groupToUngroup), 1);
+                            seleccionarFigura(null);
+                            contador.grupo--;
+                            actualizarLista();
+                            mostrarToast(`↪ Rehaciendo: Desagrupar "${groupToUngroup.name}".`);
+                        }
+                    }
+                    break;
+                case 'batch_visibility':
+                    accion.changes.forEach(change => {
+                        const targetObj = escena.getObjectByProperty('uuid', change.uuid);
+                        if (targetObj) {
+                            targetObj.visible = !change.visible; // Revertir al estado opuesto del original
+                            targetObj.userData.visible = !change.visible;
+                        }
+                    });
+                    seleccionarFigura(null);
+                    mostrarToast(`↪ Rehaciendo: Visibilidad masiva.`);
+                    break;
+                case 'isolate':
+                    accion.changes.forEach(change => {
+                        const targetObj = escena.getObjectByProperty('uuid', change.uuid);
+                        if (targetObj) {
+                            targetObj.visible = !change.visible; // Revertir la visibilidad de los objetos no aislados
+                            targetObj.userData.visible = !change.visible;
+                        }
+                    });
+                    const isolatedObj = escena.getObjectByProperty('uuid', accion.objectId);
+                    if (isolatedObj) {
+                        isolatedObj.visible = !isolatedObj.visible; // Revertir la visibilidad del objeto aislado
+                        isolatedObj.userData.visible = !isolatedObj.userData.visible;
+                        seleccionarFigura(isolatedObj);
+                    }
+                    mostrarToast(`↪ Rehaciendo: Aislar.`);
+                    break;
+                case 'camera_view':
+                    camara.position.fromArray(accion.newPosition);
+                    controls.target.fromArray(accion.newTarget);
+                    controls.update();
+                    mostrarToast(`↪ Rehaciendo: Cambio de vista de cámara.`);
+                    break;
+                case 'material_preset':
+                    if (obj && accion.newMaterialData) {
+                        const newMatData = accion.newMaterialData;
+                        let newMaterial;
+                        if (newMatData.materialPreset === 'glass') {
+                            newMaterial = new THREE.MeshPhysicalMaterial({
+                                color: newMatData.color,
+                                roughness: newMatData.roughness,
+                                metalness: newMatData.metalness,
+                                opacity: newMatData.opacity,
+                                transparent: newMatData.transparent,
+                                transmission: 0.9,
+                                clearcoat: 1.0,
+                                clearcoatRoughness: 0.1
+                            });
+                        } else {
+                            newMaterial = new THREE.MeshStandardMaterial({
+                                color: newMatData.color,
+                                roughness: newMatData.roughness,
+                                metalness: newMatData.metalness,
+                                opacity: newMatData.opacity,
+                                transparent: newMatData.transparent
+                            });
+                        }
+                        obj.material = newMaterial;
+                        obj.userData.materialPreset = newMatData.materialPreset;
+                        seleccionarFigura(obj);
+                        mostrarToast(`↪ Rehaciendo: Preajuste de material de ${obj.name}.`);
+                    }
+                    break;
+            }
+            actualizarBotonesUndoRedo();
+        }
+
+        function actualizarBotonesUndoRedo() {
+            document.getElementById('btnDeshacer').disabled = indiceHistorial < 0;
+            document.getElementById('btnRehacer').disabled = indiceHistorial >= historial.length - 1;
+        }
+        actualizarBotonesUndoRedo();
+
+        function serializarObjeto(obj) {
+            const data = {
+                uuid: obj.uuid,
+                name: obj.name,
+                position: obj.position.toArray(),
+                rotation: obj.rotation.toArray(),
+                scale: obj.scale.toArray(),
+                visible: obj.visible,
+                isGroup: obj.userData.isGroup || false,
+                children: [], // For groups
+                // Material properties (only for Mesh objects)
+                material: null,
+                userData: { ...obj.userData } // Copy all userData
+            };
+
+            // Remove circular references or Three.js objects from userData if any
+            delete data.userData.initialPosition;
+            delete data.userData.initialRotation;
+            delete data.userData.initialScale;
+            delete data.userData.lastColor;
+
+            if (obj.isMesh) {
+                data.userData.tipo = obj.userData.tipo; // Store original type for meshes
+                data.material = {
+                    type: obj.material.type,
+                    color: obj.material.color.getHex(),
+                    opacity: obj.material.opacity,
+                    transparent: obj.material.transparent,
+                    roughness: (obj.material.isMeshStandardMaterial || obj.material.isMeshPhysicalMaterial) ? obj.material.roughness : undefined,
+                    metalness: (obj.material.isMeshStandardMaterial || obj.material.isMeshPhysicalMaterial) ? obj.material.metalness : undefined,
+                    transmission: obj.material.isMeshPhysicalMaterial ? obj.material.transmission : undefined,
+                    clearcoat: obj.material.isMeshPhysicalMaterial ? obj.material.clearcoat : undefined,
+                    clearcoatRoughness: obj.material.isMeshPhysicalMaterial ? obj.material.clearcoatRoughness : undefined,
+                };
+                data.userData.materialPreset = obj.userData.materialPreset;
+            } else if (obj.isGroup) {
+                data.children = obj.children.map(child => serializarObjeto(child));
+            }
+
+            // Keyframes are stored separately in the global keyframes Map
+            if (keyframes.has(obj.uuid)) {
+                data.keyframes = keyframes.get(obj.uuid).map(v => ({ position: v.position.toArray(), rotation: v.rotation.toArray(), scale: v.scale.toArray() }));
+            }
+
+            return data;
+        }
+
+        function deserializarObjeto(data) {
+            let obj;
+            if (data.isGroup) {
+                obj = new THREE.Group();
+                obj.name = data.name;
+                obj.userData.isGroup = true;
+                data.children.forEach(childData => {
+                    const child = deserializarObjeto(childData);
+                    obj.add(child);
+                });
+            } else {
+                let geo;
+                switch (data.userData.tipo) {
+                    case 'cubo': geo = new THREE.BoxGeometry(1, 1, 1); break;
+                    case 'esfera': geo = new THREE.SphereGeometry(0.6, 32, 16); break;
+                    case 'cono': geo = new THREE.ConeGeometry(0.5, 1.2, 32); break;
+                    case 'cilindro': geo = new THREE.CylinderGeometry(0.5, 0.5, 1.2, 32); break;
+                    case 'toro': geo = new THREE.TorusGeometry(0.5, 0.2, 16, 100); break;
+                    default: geo = new THREE.BoxGeometry(1, 1, 1); break;
+                }
+                let mat;
+                if (data.material && data.material.type === 'MeshPhysicalMaterial') {
+                    mat = new THREE.MeshPhysicalMaterial({
+                        color: data.material.color,
+                        roughness: data.material.roughness,
+                        metalness: data.material.metalness,
+                        opacity: data.material.opacity,
+                        transparent: data.material.transparent,
+                        transmission: data.material.transmission,
+                        clearcoat: data.material.clearcoat,
+                        clearcoatRoughness: data.material.clearcoatRoughness
+                    });
+                } else if (data.material && data.material.type === 'MeshStandardMaterial') {
+                     mat = new THREE.MeshStandardMaterial({
+                        color: data.material.color,
+                        roughness: data.material.roughness,
+                        metalness: data.material.metalness,
+                        opacity: data.material.opacity,
+                        transparent: data.material.transparent
+                    });
+                } else { // Fallback
+                    mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5, metalness: 0.0 });
+                }
+                obj = new THREE.Mesh(geo, mat);
+                obj.name = data.name;
+                obj.userData.tipo = data.userData.tipo;
+                obj.userData.lastColor = data.material ? data.material.color : 0xffffff;
+                obj.userData.roughness = data.material ? data.material.roughness : 0.5;
+                obj.userData.metalness = data.material ? data.material.metalness : 0.0;
+                obj.userData.opacity = data.material ? data.material.opacity : 1.0;
+                obj.userData.materialPreset = data.userData.materialPreset || 'default';
+            }
+
+            obj.uuid = data.uuid;
+            obj.position.fromArray(data.position);
+            obj.rotation.fromArray(data.rotation);
+            obj.scale.fromArray(data.scale);
+            obj.visible = data.visible !== undefined ? data.visible : true;
+            
+            // Restore initial transform for meshes (groups don't have a fixed initial state like this)
+            if (obj.isMesh) {
+                obj.userData.initialPosition = new THREE.Vector3().fromArray(data.position);
+                obj.userData.initialRotation = new THREE.Euler().fromArray(data.rotation);
+                obj.userData.initialScale = new THREE.Vector3().fromArray(data.scale);
+            } else if (obj.isGroup) {
+                obj.userData.initialPosition = new THREE.Vector3().fromArray(data.position);
+                obj.userData.initialRotation = new THREE.Euler().fromArray(data.rotation);
+                obj.userData.initialScale = new THREE.Vector3().fromArray(data.scale);
+            }
+
+
+            if (data.keyframes && data.keyframes.length > 0) {
+                keyframes.set(obj.uuid, data.keyframes.map(k => ({
+                    position: new THREE.Vector3().fromArray(k.position),
+                    rotation: new THREE.Euler().fromArray(k.rotation),
+                    scale: new THREE.Vector3().fromArray(k.scale)
+                })));
+            }
+            return obj;
+        }
+
+        function exportSceneJSON() {
+            const sceneData = {
+                objetos: objetos.map(obj => serializarObjeto(obj)),
+                grupos: grupos.map(group => serializarObjeto(group)),
+                camaraPos: camara.position.toArray(),
+                camaraTarget: controls.target.toArray(),
+                backgroundColor: escena.background ? escena.background.getHex() : 0x222222,
+                gridVisible: gridVisible,
+                isPerspectiveCamera: isPerspectiveCamera,
+                pointLight: pointLight ? { position: pointLight.position.toArray(), intensity: pointLight.intensity, color: pointLight.color.getHex() } : null,
+                hemisphereLight: hemisphereLight ? { skyColor: hemisphereLight.color.getHex(), groundColor: hemisphereLight.groundColor.getHex(), intensity: hemisphereLight.intensity } : null,
+                spotLight: spotLight ? { position: spotLight.position.toArray(), targetPosition: spotLight.target.position.toArray(), intensity: spotLight.intensity, color: spotLight.color.getHex(), distance: spotLight.distance, angle: spotLight.angle, penumbra: spotLight.penumbra, decay: spotLight.decay } : null,
+                ambientLightIntensity: ambientLight.intensity,
+                directionalLightIntensity: directionalLight.intensity,
+                snapping: { grid: gridSnappingEnabled, object: objectSnappingEnabled }
+            };
+            const jsonString = JSON.stringify(sceneData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'infinity3d_scene.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            mostrarToast("📤 Escena exportada como JSON.");
+        }
+
+        function importSceneJSON() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const data = JSON.parse(event.target.result);
+                            mostrarDialogoConfirmacion('cargarJSON', data);
+                        } catch (error) {
+                            mostrarToast("❌ Error al importar JSON: Archivo inválido.");
+                            console.error("Error parsing JSON:", error);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        function cargarEscenaDesdeJSON(data) {
+            reiniciarEscenaSinConfirmacion(); // Limpiar la escena actual
+
+            // Carga el tipo de cámara primero para que ajustarCanvasSize lo use
+            if (data.isPerspectiveCamera !== undefined) {
+                isPerspectiveCamera = data.isPerspectiveCamera;
+            } else {
+                isPerspectiveCamera = true;
+            }
+            ajustarCanvasSize(); // Recrea la cámara correcta
+
+            // Después de ajustarCanvasSize, actualiza la posición y el target de la cámara cargada
+            if (data.camaraPos && data.camaraTarget) {
+                camara.position.fromArray(data.camaraPos);
+                controls.target.fromArray(data.camaraTarget);
+                controls.update();
+            }
+
+            // Cargar objetos (meshes)
+            if (data.objetos) {
+                data.objetos.forEach(objData => {
+                    const obj = deserializarObjeto(objData);
+                    escena.add(obj);
+                    objetos.push(obj);
+                    const tipo = obj.userData.tipo;
+                    const match = obj.name.match(/\s(\d+)$/);
+                    if (match) {
+                        const num = parseInt(match[1]);
+                        if (contador[tipo] < num) {
+                            contador[tipo] = num;
+                        }
+                    }
+                });
+            }
+
+            // Cargar grupos
+            if (data.grupos) {
+                data.grupos.forEach(groupData => {
+                    const group = deserializarObjeto(groupData);
+                    escena.add(group);
+                    grupos.push(group);
+                    const match = group.name.match(/Grupo (\d+)$/);
+                    if (match) {
+                        const num = parseInt(match[1]);
+                        if (contador.grupo < num) {
+                            contador.grupo = num;
+                        }
+                    }
+                });
+            }
+            actualizarLista();
+
+            if (data.backgroundColor !== undefined) {
+                escena.background = new THREE.Color(data.backgroundColor);
+                backgroundColorPicker.value = "#" + new THREE.Color(data.backgroundColor).getHexString();
+            } else {
+                escena.background = new THREE.Color(0x222222); // Default
+                backgroundColorPicker.value = "#222222";
+            }
+
+            if (data.gridVisible !== undefined) {
+                gridVisible = data.gridVisible;
+                gridHelper.visible = gridVisible;
+            } else {
+                gridVisible = true;
+                gridHelper.visible = true;
+            }
+
+            // Cargar luces
+            if (data.pointLight) {
+                if (pointLight) escena.remove(pointLight); // Remove existing light if any
+                pointLight = new THREE.PointLight(data.pointLight.color, data.pointLight.intensity, 100);
+                pointLight.position.fromArray(data.pointLight.position);
+                escena.add(pointLight);
+            } else {
+                if (pointLight) escena.remove(pointLight);
+                pointLight = null;
+            }
+            document.getElementById('btnPointLight').classList.toggle('activo', pointLight !== null);
+
+
+            if (data.hemisphereLight) {
+                if (hemisphereLight) escena.remove(hemisphereLight);
+                hemisphereLight = new THREE.HemisphereLight(data.hemisphereLight.skyColor, data.hemisphereLight.groundColor, data.hemisphereLight.intensity);
+                escena.add(hemisphereLight);
+            } else {
+                if (hemisphereLight) escena.remove(hemisphereLight);
+                hemisphereLight = null;
+            }
+            document.getElementById('btnHemisphereLight').classList.toggle('activo', hemisphereLight !== null);
+
+
+            if (data.spotLight) {
+                if (spotLight) { escena.remove(spotLight); escena.remove(spotLight.target); }
+                spotLight = new THREE.SpotLight(data.spotLight.color, data.spotLight.intensity, data.spotLight.distance, data.spotLight.angle, data.spotLight.penumbra, data.spotLight.decay);
+                spotLight.position.fromArray(data.spotLight.position);
+                spotLight.target.position.fromArray(data.spotLight.targetPosition);
+                escena.add(spotLight);
+                escena.add(spotLight.target);
+            } else {
+                if (spotLight) { escena.remove(spotLight); escena.remove(spotLight.target); }
+                spotLight = null;
+            }
+            document.getElementById('btnSpotLight').classList.toggle('activo', spotLight !== null);
+
+
+            // Cargar intensidades de luz ambiente y direccional
+            if (data.ambientLightIntensity !== undefined) {
+                ambientLight.intensity = data.ambientLightIntensity;
+                ambientLightIntensitySlider.value = ambientLight.intensity;
+                ambientLightIntensityLabel.textContent = ambientLight.intensity.toFixed(2);
+            }
+            if (data.directionalLightIntensity !== undefined) {
+                directionalLight.intensity = data.directionalLightIntensity;
+                directionalLightIntensitySlider.value = directionalLight.intensity;
+                directionalLightIntensityLabel.textContent = directionalLight.intensity.toFixed(2);
+            }
+
+            // Cargar estado de snapping
+            if (data.snapping) {
+                gridSnappingEnabled = data.snapping.grid;
+                document.getElementById('btnGridSnapping').classList.toggle('activo', gridSnappingEnabled);
+                objectSnappingEnabled = data.snapping.object;
+                document.getElementById('btnObjectSnapping').classList.toggle('activo', objectSnappingEnabled);
+            }
+
+            mostrarToast("✅ Escena importada exitosamente.");
+            historial.length = 0;
+            indiceHistorial = -1;
+            actualizarBotonesUndoRedo();
+        }
+
+
+        function guardarEscena() {
+            const data = {
+                objetos: objetos.map(obj => serializarObjeto(obj)),
+                grupos: grupos.map(group => serializarObjeto(group)), // Guardar grupos
+                camaraPos: camara.position.toArray(),
+                camaraTarget: controls.target.toArray(),
+                backgroundColor: escena.background ? escena.background.getHex() : 0x222222,
+                gridVisible: gridVisible,
+                isPerspectiveCamera: isPerspectiveCamera,
+                pointLight: pointLight ? { position: pointLight.position.toArray(), intensity: pointLight.intensity, color: pointLight.color.getHex() } : null,
+                hemisphereLight: hemisphereLight ? { skyColor: hemisphereLight.color.getHex(), groundColor: hemisphereLight.groundColor.getHex(), intensity: hemisphereLight.intensity } : null,
+                spotLight: spotLight ? { position: spotLight.position.toArray(), targetPosition: spotLight.target.position.toArray(), intensity: spotLight.intensity, color: spotLight.color.getHex(), distance: spotLight.distance, angle: spotLight.angle, penumbra: spotLight.penumbra, decay: spotLight.decay } : null,
+                ambientLightIntensity: ambientLight.intensity,
+                directionalLightIntensity: directionalLight.intensity,
+                snapping: { grid: gridSnappingEnabled, object: objectSnappingEnabled }
+            };
+            try {
+                localStorage.setItem('infinity3d_scene', JSON.stringify(data));
+                mostrarToast("💾 Escena guardada exitosamente.");
+            } catch (e) {
+                mostrarToast("❌ Error al guardar escena: " + e.message);
+                console.error("Error al guardar escena:", e);
+            }
+        }
+
+        function cargarEscena() {
+            mostrarDialogoConfirmacion('cargar');
+        }
+
+        function confirmarCargarEscena() {
+            try {
+                const dataString = localStorage.getItem('infinity3d_scene');
+                if (!dataString) {
+                    mostrarToast("📂 No hay escenas guardadas.");
+                    return;
+                }
+                const data = JSON.parse(dataString);
+                cargarEscenaDesdeJSON(data); // Reutilizar la función de carga
+            } catch (e) {
+                mostrarToast("❌ Error al cargar escena. Datos corruptos.");
+                console.error("Error al cargar escena:", e);
+            }
+        }
+
+        function reiniciarEscena() {
+            mostrarDialogoConfirmacion('reiniciar');
+        }
+
+        function reiniciarEscenaSinConfirmacion() {
+            // Eliminar todos los objetos y grupos de la escena y arrays
+            [...objetos, ...grupos].forEach(obj => escena.remove(obj));
+            objetos.length = 0;
+            grupos.length = 0;
+
+            for (const key in contador) {
+                contador[key] = 0;
+            }
+            seleccionarFigura(null); // Asegurarse de deseleccionar y desvincular TransformControls
+            ocultarColorPicker();
+            actualizarLista();
+            keyframes.clear();
+            animando = false;
+
+            // Eliminar todas las luces adicionales si existen
+            if (pointLight) { escena.remove(pointLight); pointLight = null; }
+            if (hemisphereLight) { escena.remove(hemisphereLight); hemisphereLight = null; }
+            if (spotLight) { escena.remove(spotLight); spotLight = null; }
+
+            // Restablecer luces predeterminadas
+            ambientLight.intensity = 0.8;
+            directionalLight.intensity = 0.6;
+            ambientLightIntensitySlider.value = 0.8;
+            ambientLightIntensityLabel.textContent = "0.80";
+            directionalLightIntensitySlider.value = 0.6;
+            directionalLightIntensityLabel.textContent = "0.60";
+
+            // Restaura la cámara a perspectiva y su posición por defecto
+            isPerspectiveCamera = true;
+            ajustarCanvasSize();
+            camara.position.set(0, 4, 8);
+            controls.target.set(0, 1, 0);
+            controls.update();
+
+            escena.background = new THREE.Color(0x222222); // Restablecer a gris oscuro
+            backgroundColorPicker.value = "#222222";
+            gridVisible = true;
+            gridHelper.visible = true;
+
+            // Restablecer snapping
+            gridSnappingEnabled = false;
+            objectSnappingEnabled = false;
+            document.getElementById('btnGridSnapping').classList.remove('activo');
+            document.getElementById('btnObjectSnapping').classList.remove('activo');
+            document.getElementById('btnPointLight').classList.remove('activo');
+            document.getElementById('btnHemisphereLight').classList.remove('activo');
+            document.getElementById('btnSpotLight').classList.remove('activo');
+            document.getElementById('btnGrid').classList.remove('activo'); // Ensure grid button is updated
+            document.getElementById('btnProjection').classList.remove('activo'); // Ensure projection button is updated
+
+
+            historial.length = 0;
+            indiceHistorial = -1;
+            actualizarBotonesUndoRedo();
+            mostrarToast("🆕 Nueva escena creada.");
+        }
+
+
+        let animando = false, frameActual = 0;
+        let duracionPorFrame = 700;
+
+        function agregarFrame() {
+            if (!objetoSeleccionado) {
+                mostrarToast("☝️ Selecciona una figura para añadir un fotograma.");
+                return;
+            }
+            const id = objetoSeleccionado.uuid;
+            if (!keyframes.has(id)) keyframes.set(id, []);
+
+            keyframes.get(id).push({
+                position: objetoSeleccionado.position.clone(),
+                rotation: objetoSeleccionado.rotation.clone(),
+                scale: objetoSeleccionado.scale.clone()
+            });
+            mostrarToast(`✔️ Fotograma ${keyframes.get(id).length} agregado para ${objetoSeleccionado.name}.`);
+        }
+
+        function reproducirAnimacion() {
+            if (!objetoSeleccionado) {
+                mostrarToast("☝️ Selecciona una figura para animar.");
+                return;
+            }
+            const id = objetoSeleccionado.uuid;
+            const frames = keyframes.get(id);
+            if (!frames || frames.length < 2) {
+                mostrarToast("⚠️ Necesitas al menos 2 fotogramas para animar.");
+                return;
+            }
+
+            animando = !animando;
+
+            if (animando) {
+                frameActual = 0;
+                mostrarToast(`▶ Animando ${objetoSeleccionado.name} (bucle)...`);
+                animarFrame(id);
+            } else {
+                mostrarToast("⏸ Animación pausada.");
+            }
+        }
+
+        function animarFrame(id) {
+            if (!animando || !objetoSeleccionado || objetoSeleccionado.uuid !== id) {
+                console.log("animarFrame: Deteniendo animación. Objeto no válido o animación pausada.");
+                animando = false;
+                return;
+            }
+
+            const frames = keyframes.get(id);
+            if (!frames || frames.length === 0) {
+                console.log("animarFrame: No hay fotogramas para animar.");
+                animando = false;
+                return;
+            }
+
+            const actualFrameIndex = frameActual % frames.length;
+            const nextFrameIndex = (frameActual + 1) % frames.length;
+
+            const actualState = frames[actualFrameIndex];
+            const nextState = frames[nextFrameIndex];
+
+            let progreso = 0;
+            const inicio = performance.now();
+
+            function paso(t) {
+                if (!animando || !objetoSeleccionado || objetoSeleccionado.uuid !== id) {
+                    console.log("animarFrame.paso: Deteniendo paso. Objeto no válido o animación pausada.");
+                    animando = false;
+                    return;
+                }
+
+                progreso = (t - inicio) / duracionPorFrame;
+                if (progreso >= 1) {
+                    objetoSeleccionado.position.copy(nextState.position);
+                    objetoSeleccionado.rotation.copy(nextState.rotation);
+                    objetoSeleccionado.scale.copy(nextState.scale);
+
+                    frameActual++;
+                    setTimeout(() => animarFrame(id), 50);
+                    return;
+                }
+
+                objetoSeleccionado.position.lerpVectors(actualState.position, nextState.position, progreso);
+                objetoSeleccionado.scale.lerpVectors(actualState.scale, nextState.scale, progreso);
+
+                const q1 = new THREE.Quaternion().setFromEuler(actualState.rotation);
+                const q2 = new THREE.Quaternion().setFromEuler(nextState.rotation);
+                objetoSeleccionado.quaternion.slerpQuaternions(q1, q2, progreso);
+                objetoSeleccionado.rotation.setFromQuaternion(objetoSeleccionado.quaternion);
+
+                if (objetoSeleccionado && objetoSeleccionado.uuid === id && transformControls) {
+                    transformControls.updateMatrixWorld();
+                }
+
+                requestAnimationFrame(paso);
+            }
+
+            requestAnimationFrame(paso);
+        }
+
+        function exportarVideo() {
+            if (!window.MediaRecorder) {
+                mostrarToast("❌ Tu navegador no soporta la grabación de video.");
+                return;
+            }
+            if (!objetoSeleccionado || !keyframes.has(objetoSeleccionado.uuid) || keyframes.get(objetoSeleccionado.uuid).length < 2) {
+                mostrarToast("⚠️ Necesitas una figura con al menos 2 fotogramas para exportar.");
+                return;
+            }
+
+            const stream = render.domElement.captureStream(30);
+            const grabador = new MediaRecorder(stream);
+            const partes = [];
+
+            grabador.ondataavailable = e => partes.push(e.data);
+            grabador.onstop = () => {
+                const blob = new Blob(partes, { type: "video/webm" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "Infinity3D_Animacion.webm";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                mostrarToast("✅ Video exportado.");
+            };
+
+            const animandoPreviamente = animando;
+            animando = true;
+            frameActual = 0;
+            const totalFramesAnimacion = keyframes.get(objetoSeleccionado.uuid).length;
+            const duracionTotalAnimacion = (totalFramesAnimacion - 1) * duracionPorFrame;
+
+            animarFrame(objetoSeleccionado.uuid);
+            grabador.start();
+            mostrarToast("🎥 Grabando animación...");
+
+            setTimeout(() => {
+                if (grabador.state !== "inactive") {
+                    grabador.stop();
+                }
+                animando = animandoPreviamente;
+                if (!animando && objetoSeleccionado && keyframes.has(objetoSeleccionado.uuid)) {
+                    const lastFrame = keyframes.get(objetoSeleccionado.uuid)[keyframes.get(objetoSeleccionado.uuid).length - 1];
+                    objetoSeleccionado.position.copy(lastFrame.position);
+                    objetoSeleccionado.rotation.copy(lastFrame.rotation);
+                    objetoSeleccionado.scale.copy(lastFrame.scale);
+                    if (transformControls) {
+                        transformControls.updateMatrixWorld();
+                    }
+                }
+            }, duracionTotalAnimacion + 500);
+        }
+
+        function activarPantallaCompleta() {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            }
+            mostrarToast("⛶ Modo Pantalla Completa");
+        }
+
+        function mostrarDialogoConfirmacion(accion, data = null) {
+            ocultarTodosLosPaneles(); // Asegura que otros paneles estén ocultos
+            accionConfirmacion = { type: accion, data: data };
+            dialogoConfirmacion.style.display = 'flex';
+
+            switch (accion) {
+                case 'reiniciar':
+                    dialogoTitulo.textContent = 'Reiniciar Escena';
+                    dialogoMensaje.textContent = '¿Nueva escena? ¡Se perderán los cambios no guardados!';
+                    break;
+                case 'cargar':
+                    dialogoTitulo.textContent = 'Cargar Escena';
+                    dialogoMensaje.textContent = '¿Cargar escena guardada? ¡La actual se perderá!';
+                    break;
+                case 'eliminar':
+                    dialogoTitulo.textContent = 'Eliminar Figura';
+                    dialogoMensaje.textContent = `¿Eliminar ${data.name}? ¡No se puede deshacer!`;
+                    break;
+                case 'cargarJSON':
+                    dialogoTitulo.textContent = 'Importar Escena JSON';
+                    dialogoMensaje.textContent = '¿Importar esta escena JSON? ¡La escena actual se perderá!';
+                    break;
+            }
+        }
+
+        btnDialogoSi.onclick = () => {
+            dialogoConfirmacion.style.display = 'none';
+            if (accionConfirmacion) {
+                switch (accionConfirmacion.type) {
+                    case 'reiniciar':
+                        reiniciarEscenaSinConfirmacion();
+                        break;
+                    case 'cargar':
+                        confirmarCargarEscena(); // This will call cargarEscenaDesdeJSON internally
+                        break;
+                    case 'eliminar':
+                        confirmarEliminar(accionConfirmacion.data);
+                        break;
+                    case 'cargarJSON':
+                        cargarEscenaDesdeJSON(accionConfirmacion.data);
+                        break;
+                }
+                accionConfirmacion = null;
+            }
+        };
+
+        btnDialogoNo.onclick = () => {
+            dialogoConfirmacion.style.display = 'none';
+            accionConfirmacion = null;
+            mostrarToast("🚫 Acción cancelada.");
+        };
+
+        function bucle() {
+            requestAnimationFrame(bucle);
+            if (controls) { // Asegurarse de que controls esté inicializado
+                controls.update();
+            }
+            if (transformControls && transformControls.object && objetoSeleccionado) { // Solo actualizar si un objeto está adjunto
+                transformControls.update();
+                updateObjectInfoPanel(); // Actualizar el panel de información en cada frame si hay un objeto seleccionado
+            }
+            if (camara) { // Asegurarse de que camara esté inicializada
+                render.render(escena, camara);
+            }
+        }
+
+        // El bucle se inicia en window.onload después de que todo esté configurado
+        render.domElement.addEventListener("touchstart", e => {
+            const currentTime = new Date().getTime();
+            const deltaTime = currentTime - lastTapTime;
+
+            if (e.touches.length === 1 && uiOculta && deltaTime < 300) {
+                toggleUI();
+                lastTapTime = 0;
+                e.preventDefault();
+                return;
+            }
+
+            lastTapTime = currentTime;
+
+            if (e.touches.length === 1) {
+                const rect = render.domElement.getBoundingClientRect();
+                puntero.x = ((e.touches[0].clientX - rect.left) / rect.width) * 2 - 1;
+                puntero.y = -((e.touches[0].clientY - rect.top) / rect.height) * 2 + 1;
+                raycaster.setFromCamera(puntero, camara);
+
+                if (transformControls && transformControls.dragging) {
+                    e.preventDefault();
+                    return;
+                }
+
+                const interObj = raycaster.intersectObjects([...objetos, ...grupos], true); // Intersect with all objects including children of groups
+                if (interObj.length > 0) {
+                    // Find the top-level object or group that was hit
+                    let clickedObject = interObj[0].object;
+                    while (clickedObject.parent && clickedObject.parent !== escena) {
+                        clickedObject = clickedObject.parent;
+                    }
+                    seleccionarFigura(clickedObject);
+                    e.preventDefault();
+                    return;
+                }
+
+                if (objetoSeleccionado) {
+                    seleccionarFigura(null); // Deseleccionar
+                }
+                controls.enabled = true;
+
+            } else if (e.touches.length === 2) {
+                controls.enabled = true;
+                if (transformControls) {
+                    transformControls.detach();
+                }
+            }
+        }, { passive: false });
+
+        // Cierra los paneles flotantes si se hace clic fuera de ellos
+        document.addEventListener('click', (e) => {
+            const panels = document.querySelectorAll('.panel');
+            let clickedInsidePanel = false;
+            for (let i = 0; i < panels.length; i++) {
+                // Verificar si el clic fue dentro de un panel o en un botón que abre un panel
+                if (panels[i].contains(e.target) || e.target.closest('.boton')) {
+                    clickedInsidePanel = true;
+                    break;
+                }
+            }
+
+            // Si se hizo clic fuera de cualquier panel y fuera de cualquier botón de las barras
+            if (!clickedInsidePanel) {
+                ocultarTodosLosPaneles();
+            }
+        });
+    </script>
+</body>
+</html>
+
