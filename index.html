@@ -3,249 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>BLUEOS ELITE FIX</title>
+    <title>BLUEOS ELITE</title>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --neon: #00f2ff;
-            --bg-dark: #01040a;
-            --panel: rgba(0, 242, 255, 0.05);
+            --bg: #01040a;
         }
 
-        /* Limpieza total para evitar fugas de código */
-        * {
+        /* Forzamos que el cuerpo siempre tenga color para evitar pantalla negra */
+        html, body {
+            background-color: #01040a !important;
             margin: 0; padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
+            height: 100vh; width: 100vw;
+            overflow: hidden;
+            color: white;
             font-family: 'Rajdhani', sans-serif;
-            user-select: none;
         }
 
         body {
-            background-color: var(--bg-dark);
-            background-image: 
-                radial-gradient(circle at 50% 50%, #0a1b33 0%, #010409 100%),
-                linear-gradient(rgba(0, 242, 255, 0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 242, 255, 0.02) 1px, transparent 1px);
-            background-size: 100% 100%, 40px 40px, 40px 40px;
-            color: #fff;
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden;
+            background-image: radial-gradient(circle at 50% 50%, #0a1b33 0%, #01040a 100%);
             display: flex;
             flex-direction: column;
         }
 
-        /* Status Bar */
         header {
-            padding: 45px 25px 15px;
+            padding: 50px 25px 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .brand-logo {
+        .logo {
             font-size: 1.8rem;
             font-weight: 700;
-            letter-spacing: 6px;
             color: var(--neon);
-            text-shadow: 0 0 15px var(--neon);
+            text-shadow: 0 0 10px var(--neon);
+            letter-spacing: 5px;
         }
 
-        #bat-info {
-            font-size: 0.85rem;
-            border: 1px solid var(--neon);
-            padding: 2px 8px;
-            border-radius: 4px;
-        }
-
-        /* Hero Widget */
-        .widget-box {
-            margin: 10px 20px;
-            padding: 25px;
-            background: var(--panel);
+        .hero {
+            margin: 20px;
+            padding: 30px;
+            background: rgba(0, 242, 255, 0.05);
             border-left: 4px solid var(--neon);
-            border-radius: 2px;
             backdrop-filter: blur(10px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
         }
 
-        .digital-clock {
-            font-size: 3.8rem;
+        .time {
+            font-size: 4rem;
             font-weight: 700;
-            line-height: 1;
         }
 
-        .sys-tag {
-            font-size: 0.8rem;
-            color: var(--neon);
-            letter-spacing: 4px;
-            margin-top: 8px;
-            text-transform: uppercase;
-            font-weight: 600;
-        }
-
-        /* App Drawer */
-        #app-grid {
+        #apps {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 15px;
             padding: 20px;
-            overflow-y: auto;
             flex-grow: 1;
-            padding-bottom: 120px;
-            scrollbar-width: none;
+            overflow-y: auto;
         }
-        #app-grid::-webkit-scrollbar { display: none; }
 
-        .app-card {
+        .app {
             display: flex;
             flex-direction: column;
             align-items: center;
-            animation: appFadeIn 0.5s ease-out forwards;
-            opacity: 0;
-        }
-
-        .app-icon {
-            width: 65px;
-            height: 65px;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(0,242,255,0.15);
-            border-radius: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 8px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-            transition: 0.2s;
-        }
-
-        .app-card:active .app-icon {
-            transform: scale(0.85);
-            border-color: var(--neon);
-        }
-
-        .app-icon img {
-            width: 70%; height: 70%; object-fit: contain;
-        }
-
-        .app-label {
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            color: #d1d1d1;
             text-align: center;
-            width: 100%;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
-        /* Navigation Bar */
+        .icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(0,242,255,0.2);
+            border-radius: 15px;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon img { width: 70%; height: 70%; }
+        .name { font-size: 0.7rem; color: #ccc; text-transform: uppercase; }
+
         footer {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            height: 80px;
+            height: 60px;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
         }
 
-        .pill-home {
-            width: 55px;
-            height: 6px;
+        .pill {
+            width: 50px; height: 4px;
             background: var(--neon);
+            box-shadow: 0 0 10px var(--neon);
             border-radius: 10px;
-            box-shadow: 0 0 15px var(--neon);
-            opacity: 0.7;
-        }
-
-        @keyframes appFadeIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
-
     <header>
-        <div class="brand-logo">BLUEOS</div>
-        <div id="bat-info">--%</div>
+        <div class="logo">BLUEOS</div>
+        <div id="bat">100%</div>
     </header>
 
-    <div class="widget-box">
-        <div class="digital-clock" id="clock">00:00</div>
-        <div class="sys-tag">System Elite Active</div>
+    <div class="hero">
+        <div class="time" id="clock">00:00</div>
+        <div style="font-size: 0.8rem; color: var(--neon); letter-spacing: 2px;">SISTEMA CARGADO</div>
     </div>
 
-    <main id="app-grid">
-        <div style="grid-column: span 4; text-align: center; opacity: 0.2; margin-top: 60px;">
-            Sincronizando...
-        </div>
-    </main>
+    <div id="apps">
+        <!-- Apps se inyectan aquí -->
+    </div>
 
     <footer>
-        <div class="pill-home" onclick="location.reload()"></div>
+        <div class="pill" onclick="location.reload()"></div>
     </footer>
 
     <script>
-        // Reloj y Batería
-        function updateSystem() {
-            const now = new Date();
-            document.getElementById('clock').innerText = 
-                String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
-            
-            if (navigator.getBattery) {
-                navigator.getBattery().then(b => {
-                    document.getElementById('bat-info').innerText = Math.floor(b.level * 100) + "%";
-                });
-            }
+        function update() {
+            const d = new Date();
+            document.getElementById('clock').innerText = d.getHours().toString().padStart(2, '0') + ":" + d.getMinutes().toString().padStart(2, '0');
         }
-        setInterval(updateSystem, 1000);
-        updateSystem();
+        setInterval(update, 1000); update();
 
-        // Carga de aplicaciones
         window.setApps = function(json) {
-            try {
-                const apps = JSON.parse(json);
-                const grid = document.getElementById('app-grid');
-                grid.innerHTML = '';
-
-                apps.forEach((app, i) => {
-                    const card = document.createElement('div');
-                    card.className = 'app-card';
-                    card.style.animationDelay = (i * 0.03) + "s";
-                    
-                    card.onclick = () => {
-                        if(window.Android) Android.launchApp(app.packageName);
-                        else if(window.median) window.median.openApp({packageName: app.packageName});
-                    };
-
-                    card.innerHTML = `
-                        <div class="app-icon">
-                            <img src="${app.icon || 'https://cdn-icons-png.flaticon.com/512/25/25231.png'}" alt="app">
-                        </div>
-                        <div class="app-label">${app.name}</div>
-                    `;
-                    grid.appendChild(card);
-                });
-            } catch(e) {}
+            const container = document.getElementById('apps');
+            container.innerHTML = '';
+            const apps = JSON.parse(json);
+            apps.forEach(app => {
+                const div = document.createElement('div');
+                div.className = 'app';
+                div.onclick = () => {
+                    if(window.median) window.median.openApp({packageName: app.packageName});
+                    else if(window.Android) Android.launchApp(app.packageName);
+                };
+                div.innerHTML = `<div class="icon"><img src="${app.icon || 'https://cdn-icons-png.flaticon.com/512/25/25231.png'}"></div><div class="name">${app.name}</div>`;
+                container.appendChild(div);
+            });
         };
 
-        // Simulación visual
-        if (!window.Android && !window.median) {
-            setTimeout(() => {
-                const mocks = [
-                    {name: "Free Fire", packageName: "com.dts", icon: ""},
-                    {name: "WhatsApp", packageName: "com.wa", icon: ""},
-                    {name: "YouTube", packageName: "com.yt", icon: ""},
-                    {name: "Chrome", packageName: "com.ch", icon: ""},
-                    {name: "Settings", packageName: "com.st", icon: ""},
-                    {name: "Discord", packageName: "com.ds", icon: ""}
-                ];
-                window.setApps(JSON.stringify(mocks));
-            }, 800);
+        // Datos de prueba para verificar que no esté en negro
+        if(!window.median && !window.Android) {
+            window.setApps(JSON.stringify([{name: "Test App", packageName: "com.test"}]));
         }
     </script>
 </body>
