@@ -3,182 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>BLUEOS ELITE</title>
+    <title>BLUEOS ULTIMATE</title>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --neon: #00f2ff;
-            --bg: #010205;
-            --glass: rgba(0, 242, 255, 0.07);
+            --bg: #01040a;
+            --card: rgba(0, 242, 255, 0.08);
+            --border: rgba(0, 242, 255, 0.2);
         }
 
-        /* Bloqueo total de selección y scroll no deseado */
+        /* Reset Total - Previene que se filtre código como texto */
         * {
             margin: 0; padding: 0;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
             user-select: none;
-            -webkit-user-select: none;
+            font-family: 'Rajdhani', sans-serif;
         }
 
         body {
-            background: var(--bg);
-            color: #fff;
-            font-family: 'Rajdhani', sans-serif;
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(circle at 50% 0%, #0d1b33 0%, #010409 100%),
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+            color: white;
             height: 100vh;
             width: 100vw;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            /* Soporte para notch en dispositivos modernos */
-            padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
         }
 
-        /* Fondo Gamer Dinámico */
-        .bg-layer {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: 
-                radial-gradient(circle at 50% 0%, #0a1b33 0%, #010205 70%),
-                linear-gradient(rgba(0, 242, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 242, 255, 0.03) 1px, transparent 1px);
-            background-size: 100% 100%, 40px 40px, 40px 40px;
-            z-index: -1;
-        }
-
+        /* Barra de Estado Superior */
         header {
-            padding: 25px 20px 10px;
+            padding: 40px 25px 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .logo {
-            font-size: 1.7rem;
+            font-size: 1.8rem;
             font-weight: 700;
-            letter-spacing: 6px;
+            letter-spacing: 5px;
             color: var(--neon);
             text-shadow: 0 0 15px var(--neon);
         }
 
-        .bat-info {
-            font-size: 0.85rem;
-            background: var(--glass);
-            padding: 4px 12px;
-            border-radius: 20px;
-            border: 1px solid rgba(0, 242, 255, 0.2);
+        #bat {
+            background: var(--card);
+            padding: 5px 12px;
+            border-radius: 15px;
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
         }
 
-        /* Widget de Estado */
+        /* Widget Hero */
         .hero {
-            margin: 15px 20px;
-            padding: 20px;
-            background: var(--glass);
-            border-radius: 12px;
-            border: 1px solid rgba(0, 242, 255, 0.1);
+            margin: 10px 20px;
+            padding: 25px;
+            background: var(--card);
+            border-left: 5px solid var(--neon);
+            border-radius: 10px;
             backdrop-filter: blur(10px);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 4px; height: 100%;
-            background: var(--neon);
-            box-shadow: 0 0 10px var(--neon);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
         }
 
         .time {
-            font-size: 3.5rem;
+            font-size: 4rem;
             font-weight: 700;
             line-height: 1;
-            margin-bottom: 5px;
+            margin: 0;
         }
 
-        .label {
-            font-size: 0.75rem;
+        .status {
+            font-size: 0.8rem;
             color: var(--neon);
-            letter-spacing: 4px;
-            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-top: 10px;
             font-weight: 600;
+            text-transform: uppercase;
         }
 
-        /* Cajón de Aplicaciones */
-        #apps {
+        /* Grilla de Aplicaciones Mejorada */
+        #app-drawer {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
+            gap: 20px;
             padding: 20px;
             overflow-y: auto;
             flex-grow: 1;
-            /* Ocultar scrollbar */
             scrollbar-width: none;
-            -ms-overflow-style: none;
+            padding-bottom: 120px;
         }
-        #apps::-webkit-scrollbar { display: none; }
+        #app-drawer::-webkit-scrollbar { display: none; }
 
-        .app {
+        .app-node {
             display: flex;
             flex-direction: column;
             align-items: center;
-            animation: appEntry 0.4s cubic-bezier(0.2, 0, 0.2, 1) forwards;
+            animation: appIn 0.5s ease-out forwards;
             opacity: 0;
         }
 
-        .app:active { transform: scale(0.85); }
-
-        .icon-box {
-            width: 62px;
-            height: 62px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(0, 242, 255, 0.1);
-            border-radius: 16px;
+        .icon-shield {
+            width: 65px;
+            height: 65px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 20px;
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
             margin-bottom: 8px;
-            box-shadow: 0 8px 15px rgba(0,0,0,0.4);
-            position: relative;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            transition: 0.2s;
         }
 
-        .icon-box img {
+        .app-node:active .icon-shield {
+            transform: scale(0.8);
+            background: var(--card);
+            box-shadow: 0 0 20px var(--neon);
+        }
+
+        .icon-shield img {
             width: 70%;
             height: 70%;
             object-fit: contain;
         }
 
-        .app-name {
-            font-size: 0.65rem;
+        .name {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #efefef;
             text-align: center;
             width: 100%;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            color: #ccc;
-            font-weight: 500;
         }
 
-        /* Dock Inferior */
-        footer {
-            height: 70px;
+        /* Dock / Barra de Navegación */
+        .dock {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 80px;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(transparent, rgba(0,0,0,0.9));
+            background: linear-gradient(transparent, rgba(0,0,0,0.95));
         }
 
-        .home-pill {
-            width: 50px;
-            height: 5px;
+        .pill {
+            width: 60px;
+            height: 6px;
             background: var(--neon);
-            border-radius: 10px;
+            border-radius: 20px;
             box-shadow: 0 0 15px var(--neon);
-            opacity: 0.6;
+            opacity: 0.7;
+            cursor: pointer;
         }
 
-        @keyframes appEntry {
+        @keyframes appIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
@@ -186,35 +177,32 @@
 </head>
 <body>
 
-    <div class="bg-layer"></div>
-
     <header>
         <div class="logo">BLUEOS</div>
-        <div class="bat-info" id="bat">--%</div>
+        <div id="bat">--%</div>
     </header>
 
     <div class="hero">
-        <div class="time" id="clock">00:00</div>
-        <div class="label">Gaming Core v2.5</div>
+        <h1 class="time" id="clock">00:00</h1>
+        <div class="status">SISTEMA ELITE EN LÍNEA</div>
     </div>
 
-    <main id="apps">
-        <!-- Apps cargadas por el sistema -->
-        <div style="grid-column: span 4; text-align: center; opacity: 0.2; margin-top: 40px;">
-            ESPERANDO SEÑAL...
+    <main id="app-drawer">
+        <div style="grid-column: span 4; text-align: center; opacity: 0.3; margin-top: 60px;">
+            INICIANDO PROTOCOLOS...
         </div>
     </main>
 
-    <footer>
-        <div class="home-pill" onclick="location.reload()"></div>
-    </footer>
+    <div class="dock">
+        <div class="pill" onclick="location.reload()"></div>
+    </div>
 
     <script>
-        // Reloj y Batería nativos
-        function updateUI() {
-            const d = new Date();
+        // Actualización de Reloj y Batería
+        function updateStats() {
+            const now = new Date();
             document.getElementById('clock').innerText = 
-                String(d.getHours()).padStart(2, '0') + ":" + String(d.getMinutes()).padStart(2, '0');
+                String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
             
             if (navigator.getBattery) {
                 navigator.getBattery().then(b => {
@@ -222,55 +210,51 @@
                 });
             }
         }
-        setInterval(updateUI, 1000);
-        updateUI();
+        setInterval(updateStats, 1000);
+        updateStats();
 
-        /**
-         * FUNCIÓN PARA MEDIAN / APK BUILDER
-         * Inyecta las aplicaciones instaladas.
-         */
+        // Función para recibir apps (Soporte para Median y Website 2 APK)
         window.setApps = function(json) {
             try {
                 const apps = JSON.parse(json);
-                const container = document.getElementById('apps');
+                const container = document.getElementById('app-drawer');
                 container.innerHTML = '';
 
-                apps.forEach((app, index) => {
+                apps.forEach((app, i) => {
                     const el = document.createElement('div');
-                    el.className = 'app';
-                    el.style.animationDelay = (index * 0.03) + "s";
+                    el.className = 'app-node';
+                    el.style.animationDelay = (i * 0.03) + "s";
                     
                     el.onclick = () => {
                         if(window.Android) Android.launchApp(app.packageName);
                         else if(window.median) window.median.openApp({packageName: app.packageName});
-                        else console.log("Abriendo: " + app.packageName);
                     };
 
                     el.innerHTML = `
-                        <div class="icon-box">
+                        <div class="icon-shield">
                             <img src="${app.icon || 'https://cdn-icons-png.flaticon.com/512/25/25231.png'}" alt="icon">
                         </div>
-                        <div class="app-name">${app.name}</div>
+                        <div class="name">${app.name}</div>
                     `;
                     container.appendChild(el);
                 });
-            } catch(e) { console.error("Error al procesar apps"); }
+            } catch(e) { console.error("Error al inyectar apps"); }
         };
 
-        // Simulación para Desarrollo
+        // Simulación para ver el diseño
         if (!window.Android && !window.median) {
             setTimeout(() => {
-                const mocks = [
+                const testData = [
                     {name: "Free Fire", packageName: "com.dts", icon: ""},
                     {name: "WhatsApp", packageName: "com.wa", icon: ""},
                     {name: "YouTube", packageName: "com.yt", icon: ""},
-                    {name: "Settings", packageName: "com.st", icon: ""},
-                    {name: "Chrome", packageName: "com.ch", icon: ""},
                     {name: "Discord", packageName: "com.ds", icon: ""},
+                    {name: "Chrome", packageName: "com.ch", icon: ""},
+                    {name: "Settings", packageName: "com.st", icon: ""},
                     {name: "Camera", packageName: "com.cm", icon: ""},
                     {name: "Play Store", packageName: "com.ps", icon: ""}
                 ];
-                window.setApps(JSON.stringify(mocks));
+                window.setApps(JSON.stringify(testData));
             }, 1000);
         }
     </script>
