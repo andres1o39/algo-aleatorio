@@ -3,37 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BLUEOS ANDROID 13</title>
+    <title>BLUEOS ELITE</title>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --cyan: #00f2ff;
+            --neon: #00f2ff;
             --bg: #01040a;
         }
 
-        /* Forzamos que no haya transparencia inicial (evita el negro) */
-        html, body {
-            background: var(--bg) !important;
-            margin: 0; padding: 0;
-            width: 100vw; height: 100vh;
-            overflow: hidden;
-            color: #fff;
-            font-family: 'Rajdhani', sans-serif;
-        }
-
-        /* Fondo con rejilla para saber que cargó */
+        /* Forzado de color de fondo para evitar el negro del WebView */
+        html { background-color: var(--bg); }
+        
         body {
+            background-color: var(--bg);
             background-image: 
                 radial-gradient(circle at 50% 50%, #0a1b33 0%, #01040a 100%),
                 linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
             background-size: 100% 100%, 30px 30px, 30px 30px;
+            margin: 0; padding: 0;
+            width: 100vw; height: 100vh;
+            overflow: hidden;
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
             display: flex;
             flex-direction: column;
         }
 
         header {
-            padding: 50px 25px 10px;
+            padding: 55px 25px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -42,68 +40,68 @@
         .logo {
             font-size: 1.8rem;
             font-weight: 700;
-            letter-spacing: 5px;
-            color: var(--cyan);
-            text-shadow: 0 0 10px var(--cyan);
+            letter-spacing: 6px;
+            color: var(--neon);
+            text-shadow: 0 0 15px var(--neon);
         }
 
-        .hero {
-            margin: 15px 20px;
+        .hero-panel {
+            margin: 10px 20px;
             padding: 25px;
-            background: rgba(0, 242, 255, 0.05);
-            border-left: 4px solid var(--cyan);
+            background: rgba(0, 242, 255, 0.06);
+            border-left: 4px solid var(--neon);
             backdrop-filter: blur(10px);
         }
 
         .clock {
-            font-size: 3.5rem;
+            font-size: 3.8rem;
             font-weight: 700;
+            line-height: 1;
         }
 
-        #apps-container {
+        #app-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 15px;
             padding: 20px;
-            flex-grow: 1;
             overflow-y: auto;
+            flex-grow: 1;
+            padding-bottom: 100px;
         }
 
-        .app-item {
+        .app-card {
             display: flex;
             flex-direction: column;
             align-items: center;
-            text-align: center;
-            animation: fadeIn 0.3s ease-out forwards;
+            animation: fadeIn 0.4s ease-out forwards;
         }
 
-        .icon-box {
-            width: 62px;
-            height: 62px;
+        .app-icon {
+            width: 64px; height: 64px;
             background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(0, 242, 255, 0.2);
+            border: 1px solid rgba(0, 242, 255, 0.15);
             border-radius: 18px;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
         }
 
-        .icon-box img { width: 70%; height: 70%; object-fit: contain; }
-        .app-name { font-size: 0.65rem; color: #ccc; text-transform: uppercase; }
+        .app-icon img { width: 70%; height: 70%; object-fit: contain; }
+        .app-label { font-size: 0.65rem; color: #d1d1d1; text-transform: uppercase; text-align: center; }
 
         footer {
-            height: 60px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            position: fixed; bottom: 0; width: 100%; height: 80px;
+            display: flex; justify-content: center; align-items: center;
+            background: linear-gradient(transparent, rgba(0,0,0,0.9));
         }
 
-        .home-pill {
-            width: 50px; height: 5px;
-            background: var(--cyan);
+        .nav-pill {
+            width: 55px; height: 6px;
+            background: var(--neon);
             border-radius: 10px;
-            box-shadow: 0 0 10px var(--cyan);
+            box-shadow: 0 0 15px var(--neon);
         }
 
         @keyframes fadeIn {
@@ -113,69 +111,68 @@
     </style>
 </head>
 <body>
+
     <header>
         <div class="logo">BLUEOS</div>
-        <div id="bat-val" style="border: 1px solid var(--cyan); padding: 2px 8px; border-radius: 4px;">--%</div>
+        <div id="bat" style="border:1px solid var(--neon); padding:2px 8px; border-radius:4px; font-size:0.8rem;">--%</div>
     </header>
 
-    <div class="hero">
-        <div class="clock" id="time-val">00:00</div>
-        <div style="font-size: 0.7rem; color: var(--cyan); letter-spacing: 3px; margin-top: 5px;">ANDROID 13 OPTIMIZED</div>
+    <div class="hero-panel">
+        <div class="clock" id="time">00:00</div>
+        <div style="font-size:0.7rem; color:var(--neon); letter-spacing:3px; margin-top:5px;">SISTEMA ACTIVO v2.0</div>
     </div>
 
-    <div id="apps-container">
-        <!-- Las apps aparecerán aquí -->
+    <div id="app-grid">
+        <!-- Apps cargadas dinámicamente -->
     </div>
 
     <footer>
-        <div class="home-pill" onclick="location.reload()"></div>
+        <div class="nav-pill" onclick="location.reload()"></div>
     </footer>
 
     <script>
-        function updateSys() {
-            const d = new Date();
-            document.getElementById('time-val').innerText = 
-                String(d.getHours()).padStart(2, '0') + ":" + String(d.getMinutes()).padStart(2, '0');
+        function updateUI() {
+            const now = new Date();
+            document.getElementById('time').innerText = 
+                String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
             
             if (navigator.getBattery) {
                 navigator.getBattery().then(b => {
-                    document.getElementById('bat-val').innerText = Math.floor(b.level * 100) + "%";
+                    document.getElementById('bat').innerText = Math.floor(b.level * 100) + "%";
                 });
             }
         }
-        setInterval(updateSys, 1000); updateSys();
+        setInterval(updateUI, 1000); updateUI();
 
+        // Esta función es la que llama el puente Android
         window.setApps = function(json) {
+            const container = document.getElementById('app-grid');
+            container.innerHTML = '';
             try {
                 const apps = JSON.parse(json);
-                const container = document.getElementById('apps-container');
-                container.innerHTML = '';
                 apps.forEach(app => {
                     const div = document.createElement('div');
-                    div.className = 'app-item';
+                    div.className = 'app-card';
                     div.onclick = () => {
-                        // Soporte para múltiples inyectores
                         if(window.Android) Android.launchApp(app.packageName);
                         else if(window.median) window.median.openApp({packageName: app.packageName});
                     };
                     div.innerHTML = `
-                        <div class="icon-box">
-                            <img src="${app.icon || 'https://cdn-icons-png.flaticon.com/512/25/25231.png'}">
-                        </div>
-                        <div class="app-name">${app.name}</div>
+                        <div class="app-icon"><img src="${app.icon || 'https://cdn-icons-png.flaticon.com/512/25/25231.png'}"></div>
+                        <div class="app-label">${app.name}</div>
                     `;
                     container.appendChild(div);
                 });
             } catch(e) {
-                console.error("Error cargando apps");
+                container.innerHTML = '<p style="grid-column: span 4; text-align:center; opacity:0.5;">Esperando datos del sistema...</p>';
             }
         };
 
-        // Simulación para ver que funciona el diseño
+        // Simulación para ver que el HTML no está negro
         if(!window.Android && !window.median) {
             window.setApps(JSON.stringify([
-                {name: "WhatsApp", packageName: "com.whatsapp"},
-                {name: "YouTube", packageName: "com.google.android.youtube"}
+                {name: "Juego 1", packageName: "com.juego1"},
+                {name: "Juego 2", packageName: "com.juego2"}
             ]));
         }
     </script>
